@@ -149,6 +149,62 @@ const PRODUCTS: ProductSeed[] = [
   },
 ];
 
+/** Produits, photos, variantes, pays desservis et frais de livraison du catalogue d'exemple. */
+async function insertProducts(app: App, adminId: string, realNow: Date): Promise<Record<string, string>> {
+  const db = app.db;
+  const productIds: Record<string, string> = {};
+  for (const p of PRODUCTS) {
+    const cat = await db.one(`SELECT id FROM categories WHERE slug = $1`, [p.category]);
+    const row = await db.one(
+      `INSERT INTO products (category_id, slug, name, description, features, specifications, origin_country, lead_time_days_min, lead_time_days_max,
+                             sale_unit, pieces_per_sale_unit, moq, base_price_amount, base_price_currency, compare_at_amount,
+                             supplier_cost_amount, supplier_cost_currency, i18n, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`,
+      [cat!.id, slugify(p.name), p.name, p.description, JSON.stringify(p.features), JSON.stringify(p.specs.map(([label, value]) => ({ label, value }))),
+       p.origin, p.lead[0], p.lead[1], p.saleUnit ?? 'UNIT', p.pieces ?? 1, p.moq, p.base[0], p.base[1], p.compareAt ?? null,
+       p.supplier[0], p.supplier[1], JSON.stringify({ en: p.en }), adminId],
+    );
+    productIds[p.image] = row!.id;
+    if (p.photo) {
+      await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'IMAGE', $2, $3, $4, 0)`, [
+        row!.id, `/photos/${p.photo}.webp`, `/photos/${p.photo}-480.webp`, p.name,
+      ]);
+      // Carrousel : les vues de détail, puis la vidéo (son aperçu est la photo du produit).
+      for (let n = 1; n <= (p.details ?? 0); n++) {
+        await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'IMAGE', $2, $3, $4, $5)`, [
+          row!.id, `/photos/${p.photo}-d${n}.webp`, `/photos/${p.photo}-d${n}-480.webp`, `${p.name} — détail ${n}`, n,
+        ]);
+      }
+      if (p.video) {
+        await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'VIDEO', $2, $3, $4, $5)`, [
+          row!.id, `/photos/${p.photo}.mp4`, `/photos/${p.photo}-480.webp`, `${p.name} — vidéo`, (p.details ?? 0) + 1,
+        ]);
+      }
+    } else {
+      await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'IMAGE', $2, $2, $3, 0), ($1, 'IMAGE', $4, $4, $3, 1)`, [
+        row!.id, `/demo/${p.image}.svg`, p.name, `/demo/${p.image}-2.svg`,
+      ]);
+    }
+    for (const [i, [label, attributes, delta]] of (p.variants ?? []).entries()) {
+      await db.query(`INSERT INTO product_variants (product_id, sku, label, attributes, price_delta_amount, sort_order) VALUES ($1, $2, $3, $4, $5, $6)`, [
+        row!.id, `${p.image.toUpperCase()}-${i + 1}`, label, JSON.stringify(attributes), delta, i,
+      ]);
+    }
+    for (const [country, [amount, currency, freight, customs]] of Object.entries(p.shipping)) {
+      await db.query(`INSERT INTO product_countries (product_id, country_code) VALUES ($1, $2)`, [row!.id, country]);
+      await db.query(
+        `INSERT INTO shipping_rates (product_id, country_code, amount, currency_code, freight_cost, customs_cost, created_by, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [row!.id, country, amount, currency, freight, customs, adminId, new Date(realNow.getTime() - 80 * DAY)],
+      );
+    }
+  }
+
+  // Illustrations provisoires, sauf pour les catégories qui ont déjà leur image.
+  await db.query(`UPDATE categories SET image_url = '/demo/cat-' || slug || '.svg' WHERE image_url IS NULL`);
+
+  return productIds;
+}
+
 export async function seedDemo(app: App): Promise<void> {
   if (app.config.env === 'production') throw new Error('Le jeu de démonstration ne peut pas être chargé en production.');
   const already = await app.db.one(`SELECT 1 FROM users WHERE email = 'superadmin@groupdeals.test'`);
@@ -222,55 +278,7 @@ export async function seedDemo(app: App): Promise<void> {
   ]);
 
   /* ---- Catalogue ---- */
-  const productIds: Record<string, string> = {};
-  for (const p of PRODUCTS) {
-    const cat = await db.one(`SELECT id FROM categories WHERE slug = $1`, [p.category]);
-    const row = await db.one(
-      `INSERT INTO products (category_id, slug, name, description, features, specifications, origin_country, lead_time_days_min, lead_time_days_max,
-                             sale_unit, pieces_per_sale_unit, moq, base_price_amount, base_price_currency, compare_at_amount,
-                             supplier_cost_amount, supplier_cost_currency, i18n, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`,
-      [cat!.id, slugify(p.name), p.name, p.description, JSON.stringify(p.features), JSON.stringify(p.specs.map(([label, value]) => ({ label, value }))),
-       p.origin, p.lead[0], p.lead[1], p.saleUnit ?? 'UNIT', p.pieces ?? 1, p.moq, p.base[0], p.base[1], p.compareAt ?? null,
-       p.supplier[0], p.supplier[1], JSON.stringify({ en: p.en }), users.admin],
-    );
-    productIds[p.image] = row!.id;
-    if (p.photo) {
-      await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'IMAGE', $2, $3, $4, 0)`, [
-        row!.id, `/photos/${p.photo}.webp`, `/photos/${p.photo}-480.webp`, p.name,
-      ]);
-      // Carrousel : les vues de détail, puis la vidéo (son aperçu est la photo du produit).
-      for (let n = 1; n <= (p.details ?? 0); n++) {
-        await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'IMAGE', $2, $3, $4, $5)`, [
-          row!.id, `/photos/${p.photo}-d${n}.webp`, `/photos/${p.photo}-d${n}-480.webp`, `${p.name} — détail ${n}`, n,
-        ]);
-      }
-      if (p.video) {
-        await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'VIDEO', $2, $3, $4, $5)`, [
-          row!.id, `/photos/${p.photo}.mp4`, `/photos/${p.photo}-480.webp`, `${p.name} — vidéo`, (p.details ?? 0) + 1,
-        ]);
-      }
-    } else {
-      await db.query(`INSERT INTO product_media (product_id, kind, url, thumbnail_url, alt, sort_order) VALUES ($1, 'IMAGE', $2, $2, $3, 0), ($1, 'IMAGE', $4, $4, $3, 1)`, [
-        row!.id, `/demo/${p.image}.svg`, p.name, `/demo/${p.image}-2.svg`,
-      ]);
-    }
-    for (const [i, [label, attributes, delta]] of (p.variants ?? []).entries()) {
-      await db.query(`INSERT INTO product_variants (product_id, sku, label, attributes, price_delta_amount, sort_order) VALUES ($1, $2, $3, $4, $5, $6)`, [
-        row!.id, `${p.image.toUpperCase()}-${i + 1}`, label, JSON.stringify(attributes), delta, i,
-      ]);
-    }
-    for (const [country, [amount, currency, freight, customs]] of Object.entries(p.shipping)) {
-      await db.query(`INSERT INTO product_countries (product_id, country_code) VALUES ($1, $2)`, [row!.id, country]);
-      await db.query(
-        `INSERT INTO shipping_rates (product_id, country_code, amount, currency_code, freight_cost, customs_cost, created_by, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [row!.id, country, amount, currency, freight, customs, users.admin, new Date(realNow.getTime() - 80 * DAY)],
-      );
-    }
-  }
-
-  // Illustrations provisoires, sauf pour les catégories qui ont déjà leur image.
-  await db.query(`UPDATE categories SET image_url = '/demo/cat-' || slug || '.svg' WHERE image_url IS NULL`);
+  const productIds = await insertProducts(app, users.admin, realNow);
 
   /* ---- Campagnes ---- */
   const dealIds: Record<string, string> = {};
@@ -446,4 +454,63 @@ export async function seedDemo(app: App): Promise<void> {
   // Les notifications de la démonstration sont marquées envoyées pour ne pas inonder le journal.
   await db.query(`UPDATE notification_outbox SET status = 'SENT', sent_at = now()`);
   app.log.info('seed', { users: Object.keys(users).length, products: PRODUCTS.length, deals: Object.keys(dealIds).length, orders: n });
+}
+
+/**
+ * Catalogue de départ pour le site en ligne : taux de change indicatifs, bureaux locaux, produits et
+ * campagnes en cours ou à venir. AUCUN compte de démonstration ni commande fictive : les jauges et le
+ * nombre de membres partent de zéro et ne comptent que de vraies participations.
+ * Les bureaux reprennent les coordonnées du support en attendant leurs vraies coordonnées.
+ */
+export async function seedCatalog(app: App, opts: { adminId: string; phone: string; email: string }): Promise<{ products: number; deals: number }> {
+  const db = app.db;
+  if (await db.one(`SELECT 1 FROM products LIMIT 1`)) throw new Error('Le catalogue contient déjà des produits : rien n’a été chargé.');
+  const realNow = new Date();
+  await db.query(`INSERT INTO settings (key, value) VALUES ('reporting.currency', '"XAF"') ON CONFLICT (key) DO NOTHING`);
+  // Taux indicatifs : à remplacer par les taux du jour dans Back-office → Devises et pays.
+  await db.query(`UPDATE settings SET value = '0' WHERE key = 'pricing.max_rate_age_hours'`);
+  for (const [currency, rate] of Object.entries(RATES)) {
+    await db.query(`INSERT INTO exchange_rates (currency_code, rate, as_of, source) VALUES ($1, $2, $3, 'Valeur indicative — à vérifier')`, [currency, rate, realNow]);
+  }
+  const offices: [string, string, string, string, string, number, number][] = [
+    ['CM', 'GROUPDEALS Douala Akwa', 'Douala', 'Boulevard de la Liberté, Akwa', 'Africa/Douala', 4.0483, 9.7043],
+    ['CM', 'GROUPDEALS Yaoundé Centre', 'Yaoundé', 'Avenue Kennedy, Centre-ville', 'Africa/Douala', 3.8667, 11.5167],
+    ['SN', 'GROUPDEALS Dakar Plateau', 'Dakar', 'Avenue Georges Pompidou, Plateau', 'Africa/Dakar', 14.6708, -17.4381],
+    ['CI', 'GROUPDEALS Abidjan Plateau', 'Abidjan', 'Boulevard de la République, Plateau', 'Africa/Abidjan', 5.3237, -4.0168],
+    ['KE', 'GROUPDEALS Nairobi CBD', 'Nairobi', 'Moi Avenue, CBD', 'Africa/Nairobi', -1.2833, 36.8219],
+    ['NG', 'GROUPDEALS Lagos Ikeja', 'Lagos', 'Obafemi Awolowo Way, Ikeja', 'Africa/Lagos', 6.6018, 3.3515],
+  ];
+  for (const [country, name, city, address, tz, lat, lng] of offices) {
+    await db.query(
+      `INSERT INTO local_offices (country_code, name, city, address, phone, whatsapp, email, opening_hours, timezone, latitude, longitude)
+       VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8, $9, $10)`,
+      [country, name, city, address, opts.phone, opts.email, JSON.stringify(hours), tz, lat, lng],
+    );
+  }
+  app.reference.invalidate();
+  const productIds = await insertProducts(app, opts.adminId, realNow);
+  // Campagnes en cours (dont trois en vedette) et une à venir, comme sur la démo.
+  const deals: [string, number, number, number, { max?: number; featured?: boolean }][] = [
+    ['sandales', -6, 9, 2_000, { featured: true }],
+    ['chemise', -8, 4, 1_200, {}],
+    ['enfant', -3, 12, 1_500, {}],
+    ['papier', -12, 1.5, 800, { featured: true }],
+    ['panneau', -5, 15, 400, { max: 600, featured: true }],
+    ['kit', -4, 20, 60, {}],
+    ['ecouteurs', -9, 6, 500, {}],
+    ['sac', 3, 17, 900, {}],
+  ];
+  for (const [key, startDays, endDays, target, o] of deals) {
+    const p = PRODUCTS.find((x) => x.image === key)!;
+    const startsAt = new Date(realNow.getTime() + startDays * DAY);
+    await db.query(
+      `INSERT INTO group_deals (product_id, slug, stored_status, base_price_amount, base_price_currency, compare_at_amount, target_quantity,
+                                min_quantity, max_quantity, starts_at, ends_at, is_featured, created_by, created_at)
+       VALUES ($1,$2,'PUBLISHED',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$9)`,
+      [productIds[key], `${slugify(p.name)}-${startsAt.toISOString().slice(0, 7)}`, p.base[0], p.base[1], p.compareAt ?? null,
+       target, p.moq, o.max ?? null, startsAt, new Date(realNow.getTime() + endDays * DAY), !!o.featured, opts.adminId],
+    );
+  }
+  app.reference.invalidate();
+  return { products: Object.keys(productIds).length, deals: deals.length };
 }

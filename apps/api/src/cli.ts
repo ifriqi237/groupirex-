@@ -3,6 +3,7 @@
  *   migrate                      applique les migrations
  *   seed-demo                    charge le jeu de démonstration (jamais en production)
  *   create-admin <email> <mdp>   crée le premier super-administrateur
+ *   seed-catalog <email-admin>   charge le catalogue de départ (sans comptes ni commandes fictives)
  *   test-email <adresse>         envoie un email d'essai (vérifie la configuration SMTP)
  */
 
@@ -10,7 +11,7 @@ import { createApp } from './app';
 import { loadConfig } from './config';
 import { hashPassword } from './lib/crypto';
 import { syncTranslations } from './modules/reference';
-import { DEMO_PASSWORD, seedDemo } from './seed-demo';
+import { DEMO_PASSWORD, seedCatalog, seedDemo } from './seed-demo';
 import { composeEmail, sendMail } from './services/email';
 
 async function main(): Promise<void> {
@@ -27,6 +28,15 @@ async function main(): Promise<void> {
         await seedDemo(app);
         console.log(`Jeu de démonstration chargé. Mot de passe de tous les comptes : ${DEMO_PASSWORD}`);
         break;
+      case 'seed-catalog': {
+        const [email] = args;
+        const admin = email ? await app.db.one(`SELECT id FROM users WHERE email = $1`, [email.toLowerCase()]) : null;
+        if (!admin) throw new Error('Usage : seed-catalog <email d’un administrateur existant>');
+        const support = await app.reference.support();
+        const r = await seedCatalog(app, { adminId: admin.id, phone: support.phone, email: support.email });
+        console.log(`Catalogue chargé : ${r.products} produits, ${r.deals} campagnes.`);
+        break;
+      }
       case 'create-admin': {
         const [email, password] = args;
         if (!email || !password || password.length < 12) throw new Error('Usage : create-admin <email> <mot de passe de 12 caractères au moins>');
