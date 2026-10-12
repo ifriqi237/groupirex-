@@ -114,6 +114,8 @@ export function registerReferenceRoutes(app: App): void {
       logisticsSteps: LOGISTICS_STEPS.map((s) => ({ step: s.step, code: s.code })),
       // Identité légale de l'éditeur du site (mentions légales, conditions générales).
       company: await app.reference.company(),
+      // Coordonnées affichées sur la page Support.
+      support: await app.reference.support(),
       paymentProvider: app.config.payments.provider,
       environment: app.config.env,
     };

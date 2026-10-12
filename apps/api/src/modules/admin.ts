@@ -730,6 +730,9 @@ export function registerAdminRoutes(app: App): void {
     'company.email': z.string().trim().max(120),
     'company.publication_director': z.string().trim().max(120),
     'company.host': z.string().trim().max(300),
+    'support.email': z.union([z.literal(''), z.string().trim().email().max(120)]),
+    'support.phone': z.string().trim().max(40),
+    'support.whatsapp': z.string().trim().regex(/^(\+?[0-9 ().-]{6,30})?$/, 'Numéro WhatsApp invalide'),
   };
 
   r.get('/admin/settings', { permission: 'settings.manage' }, async () => {

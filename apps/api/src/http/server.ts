@@ -662,7 +662,7 @@ export function createHttpServer(app: App): http.Server {
         .all(`SELECT slug, updated_at FROM group_deals WHERE stored_status IN ('PUBLISHED') ORDER BY updated_at DESC LIMIT 5000`)
         .then((deals) => {
           const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-          const pages = ['/', '/deals', '/deals?status=upcoming', '/matching', '/partners', '/legal/mentions-legales', '/legal/conditions', '/legal/confidentialite'];
+          const pages = ['/', '/deals', '/deals?status=upcoming', '/matching', '/partners', '/support', '/legal/mentions-legales', '/legal/conditions', '/legal/confidentialite'];
           const urls = [
             ...pages.map((p) => `<url><loc>${esc(config.publicUrl + p)}</loc></url>`),
             ...deals.map((d) => `<url><loc>${esc(`${config.publicUrl}/deals/${d.slug}`)}</loc><lastmod>${new Date(d.updated_at).toISOString().slice(0, 10)}</lastmod></url>`),

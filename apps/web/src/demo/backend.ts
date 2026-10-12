@@ -550,6 +550,7 @@ on('GET', '/local-partners/:country', async (c, country) => {
 /* Identité de l'éditeur (mentions légales) : à compléter dans les Réglages du vrai back-office. */
 on('GET', '/config', async () => ({
   company: { legalName: 'GROUPIREX', legalForm: '', capital: '', address: '', rccm: '', taxId: '', phone: '', email: '', publicationDirector: '', host: '' },
+  support: { email: 'support@groupirex.com', phone: '+237 621 730 350', whatsapp: '+237 621 730 350' },
 }));
 
 on('POST', '/analytics/events', async () => new Reply(204));

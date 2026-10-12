@@ -136,6 +136,13 @@ export class Reference {
     };
   }
 
+  /** Coordonnées du support client (réglages support.*). Un champ vide masque ce moyen de contact. */
+  async support(): Promise<{ email: string; phone: string; whatsapp: string }> {
+    const s = (await this.get()).settings;
+    const v = (k: string) => String(s[`support.${k}`] ?? '').trim();
+    return { email: v('email'), phone: v('phone'), whatsapp: v('whatsapp') };
+  }
+
   async setting<T>(key: string, fallback: T): Promise<T> {
     const s = await this.get();
     return (s.settings[key] as T) ?? fallback;

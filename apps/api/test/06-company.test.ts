@@ -36,10 +36,21 @@ describe('Identité de l’entreprise : réglages, mentions légales, factures',
     const customer = await createUser(env);
     const order = (await participate(env, customer.token, cat.dealId, 50, { paymentMethod: 'OFFICE', officeId: office })).body.order;
     const doc = await env.app.db.one(`SELECT data FROM invoices WHERE order_id = $1 AND kind = 'PROFORMA'`, [order.id]);
-    assert.deepEqual(doc!.data.seller, ['GROUPIREX — SARL — Bonanjo, Douala', 'RCCM RC/DLA/2026/B/1234 — NIU M012600012345X']);
+    assert.deepEqual(doc!.data.seller, ['GROUPIREX — SARL — Bonanjo, Douala', 'RCCM RC/DLA/2026/B/1234 — NIU M012600012345X — +237 621 730 350 — support@groupirex.com']);
     const pdf = await env.api('GET', `/orders/${order.id}/documents/proforma`, { token: customer.token });
     assert.equal(pdf.status, 200);
     assert.equal(pdf.raw.subarray(0, 5).toString(), '%PDF-');
+  });
+
+  it('la page Support reçoit les coordonnées ; un champ vidé disparaît ; un email invalide est refusé', async () => {
+    const cfg = await env.api('GET', '/config');
+    assert.deepEqual(cfg.body.support, { email: 'support@groupirex.com', phone: '+237 621 730 350', whatsapp: '+237 621 730 350' });
+    const bad = await env.api('PUT', '/admin/settings', { token: admin.token, body: { settings: { 'support.email': 'pas-un-email' } } });
+    assert.equal(bad.status, 400);
+    const cleared = await env.api('PUT', '/admin/settings', { token: admin.token, body: { settings: { 'support.whatsapp': '' } } });
+    assert.equal(cleared.status, 200);
+    assert.equal((await env.api('GET', '/config')).body.support.whatsapp, '');
+    await env.api('PUT', '/admin/settings', { token: admin.token, body: { settings: { 'support.whatsapp': '+237 621 730 350' } } });
   });
 
   it('un client ne peut pas modifier ces réglages', async () => {

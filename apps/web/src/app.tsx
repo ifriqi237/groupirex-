@@ -13,6 +13,7 @@ import { MatchingPage } from './pages/matching';
 import { OrderPage, OrdersPage, PaymentReturnPage, SandboxPayPage } from './pages/orders';
 import { CountryPartnersPage, PartnersPage } from './pages/partners';
 import { LegalPageView } from './pages/legal';
+import { SupportPage } from './pages/support';
 import { ForgotPasswordPage, LoginPage, ResetPasswordPage, WelcomePage } from './pages/welcome';
 
 // Le back-office et l'espace agent ne sont chargés que pour le personnel.
@@ -49,6 +50,7 @@ const routes: RouteDef[] = [
   { pattern: '/sandbox/pay', render: () => <SandboxPayPage /> },
   { pattern: '/matching', render: () => <MatchingPage /> },
   { pattern: '/partners', render: () => <PartnersPage /> },
+  { pattern: '/support', render: () => <SupportPage /> },
   { pattern: '/legal/:page', render: (p) => <LegalPageView key={p.page} page={p.page} /> },
   { pattern: '/partners/:country', render: (p) => <CountryPartnersPage key={p.country} country={p.country} /> },
   { pattern: '/profile', render: () => <RequireAuth><ProfilePage /></RequireAuth> },
@@ -184,6 +186,7 @@ function Footer() {
           <div><Link to="/orders">{t('Mes commandes')}</Link></div>
           <div><Link to="/profile">{t('Profil')}</Link></div>
           <div><Link to="/notifications">{t('Notifications')}</Link></div>
+          <div><Link to="/support">{t('Support')}</Link></div>
         </div>
         <div className="stack-s">
           <div className="strong" style={{ color: 'var(--white)' }}>{t('Comment ça marche')}</div>
@@ -191,6 +194,7 @@ function Footer() {
         </div>
       </div>
       <nav className="wrap footer__legal" aria-label={t('Informations légales')}>
+        <Link to="/support">{t('Support et contact')}</Link>
         <Link to="/legal/mentions-legales">{t('Mentions légales')}</Link>
         <Link to="/legal/conditions">{t('Conditions générales')}</Link>
         <Link to="/legal/confidentialite">{t('Confidentialité')}</Link>

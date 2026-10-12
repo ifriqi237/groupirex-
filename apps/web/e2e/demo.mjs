@@ -60,6 +60,11 @@ try {
   await page.locator('.chips a', { hasText: 'Mentions légales' }).click();
   await page.waitForSelector('h1:has-text("Mentions légales")');
   check((await text()).includes('édité par GROUPIREX'), 'mentions légales : éditeur GROUPIREX');
+  // Page Support : lien du pied de page, email, téléphone et WhatsApp cliquables.
+  await page.locator('.footer__legal a', { hasText: 'Support et contact' }).click();
+  await page.waitForSelector('.support__row');
+  const contacts = await page.locator('.support__value').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
+  check(JSON.stringify(contacts) === JSON.stringify(['mailto:support@groupirex.com', 'tel:+237621730350', 'https://wa.me/237621730350']), 'page Support : email, téléphone et WhatsApp cliquables');
   await page.locator('.tabbar a', { hasText: 'Partenaires' }).click();
   await page.waitForSelector('#partner-country');
   await page.click('#partner-country');

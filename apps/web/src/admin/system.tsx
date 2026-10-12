@@ -211,6 +211,12 @@ const COMPANY_FIELDS: [string, string][] = [
   ['company.host', N_('Hébergeur du site (nom, adresse, téléphone)')],
 ];
 
+const SUPPORT_FIELDS: [string, string][] = [
+  ['support.email', N_('Email du support')],
+  ['support.phone', N_('Téléphone du support')],
+  ['support.whatsapp', N_('Numéro WhatsApp du support')],
+];
+
 export function SettingsPage() {
   const t = useT();
   const cur = useCurrencies();
@@ -227,7 +233,7 @@ export function SettingsPage() {
   const num = (k: string) => ({ value: s[k] ?? '', onChange: (e: { target: { value: string } }) => setS({ ...s, [k]: e.target.value === '' ? '' : Number(e.target.value) }) });
 
   const save = useAction(async () => {
-    const settings = Object.fromEntries(Object.entries(s).filter(([k, v]) => v !== '' && v !== null && JSON.stringify(v) !== JSON.stringify(data!.settings[k])));
+    const settings = Object.fromEntries(Object.entries(s).filter(([k, v]) => (v !== '' || typeof data!.settings[k] === 'string') && v !== null && JSON.stringify(v) !== JSON.stringify(data!.settings[k])));
     if (Object.keys(settings).length) await put('/admin/settings', { settings });
     const amount = office.amount.trim() === '' ? null : toMinor(office.amount, cur.decimals(office.currency));
     await put('/admin/settings/office-payment', { isActive: office.isActive, minTotalAmount: amount, minTotalCurrency: amount === null ? null : office.currency });
@@ -271,6 +277,15 @@ export function SettingsPage() {
           <p className="small muted">{t('Imprimée sur les factures, proformas et reçus, et reprise dans les mentions légales et les conditions générales du site.')}</p>
           <div className="form-grid form-grid--2">
             {COMPANY_FIELDS.map(([key, label]) => (
+              <Input key={key} label={t(label)} value={s[key] ?? ''} onChange={(e) => setS({ ...s, [key]: e.target.value })} />
+            ))}
+          </div>
+        </div>
+        <div className="card stack">
+          <h2 className="h3">{t('Support client')}</h2>
+          <p className="small muted">{t('Affiché sur la page Support du site. Laissez un champ vide pour masquer ce moyen de contact.')}</p>
+          <div className="form-grid form-grid--2">
+            {SUPPORT_FIELDS.map(([key, label]) => (
               <Input key={key} label={t(label)} value={s[key] ?? ''} onChange={(e) => setS({ ...s, [key]: e.target.value })} />
             ))}
           </div>
