@@ -1,0 +1,28 @@
+{
+  "name": "@groupdeals/api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "node build.mjs",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "migrate": "tsx src/cli.ts migrate",
+    "seed:demo": "tsx src/cli.ts seed-demo",
+    "test": "tsx --test --test-concurrency=1 test/*.test.ts"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "sharp": "^0.35.4",
+    "zod": "^3.25.0"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.0"
+  }
+}

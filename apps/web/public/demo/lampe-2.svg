@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img"><rect width="800" height="600" fill="#16275C"/><path d="M24 0V600M52 0V600M80 0V600M108 0V600M136 0V600M164 0V600M192 0V600M220 0V600M248 0V600M276 0V600M304 0V600M332 0V600M360 0V600M388 0V600M416 0V600M444 0V600M472 0V600M500 0V600M528 0V600M556 0V600M584 0V600M612 0V600M640 0V600M668 0V600M696 0V600M724 0V600M752 0V600M780 0V600" stroke="#FFFFFF" stroke-width="2" opacity="0.06"/><ellipse cx="400" cy="626.75" rx="294.5" ry="31" fill="#0D1B45" opacity="0.35"/><g transform="translate(400 340) scale(1.55) rotate(8)">
+    <g stroke="#FF4F79" stroke-width="9" stroke-linecap="round"><path d="M-150-10h-34M150-10h34M-128-98l-24-22M128-98l24-22"/></g>
+    <path d="M-52-150a52 40 0 0 1 104 0" fill="none" stroke="#0D1B45" stroke-width="10"/>
+    <rect x="-78" y="-126" width="156" height="34" rx="10" fill="#0D1B45"/>
+    <rect x="-66" y="-92" width="132" height="176" rx="14" fill="#FFE27A" stroke="#0D1B45" stroke-width="8"/>
+    <path d="M-22-92v176M22-92v176" stroke="#0D1B45" stroke-width="5" opacity=".35"/>
+    <rect x="-86" y="84" width="172" height="58" rx="12" fill="#0D1B45"/><rect x="-24" y="104" width="48" height="18" rx="5" fill="#20C45A"/></g></svg>

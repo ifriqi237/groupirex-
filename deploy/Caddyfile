@@ -1,0 +1,14 @@
+# HTTPS automatique : Caddy obtient et renouvelle le certificat du domaine (Let's Encrypt).
+# Le domaine vient de la variable DOMAIN du fichier .env ; ses enregistrements DNS (A, et AAAA si
+# le serveur a une adresse IPv6) doivent pointer vers ce serveur avant le premier démarrage.
+{$DOMAIN}, www.{$DOMAIN} {
+	@www host www.{$DOMAIN}
+	redir @www https://{$DOMAIN}{uri} permanent
+
+	encode zstd gzip
+	reverse_proxy app:4000
+	# Médias envoyés par l'administration : jusqu'à 60 Mo (vidéos produit).
+	request_body {
+		max_size 60MB
+	}
+}

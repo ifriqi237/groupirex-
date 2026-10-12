@@ -1,0 +1,78 @@
+# GROUPDEALS — PRODUCTION sur un serveur (VPS) avec Docker.
+#
+#   cd deploy
+#   cp .env.production.example .env      puis compléter .env
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Quatre services : la base PostgreSQL, l'application (API + site), Caddy (HTTPS automatique
+# avec Let's Encrypt) et une sauvegarde quotidienne de la base et des médias.
+# Guide pas à pas : docs/MISE-EN-LIGNE.md
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: groupdeals
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans .env}
+      POSTGRES_DB: groupdeals
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U groupdeals -d groupdeals"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    build: ..
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://groupdeals:${POSTGRES_PASSWORD}@db:5432/groupdeals
+      TRUST_PROXY: "true"
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN manquant dans .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  backup:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: groupdeals
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: groupdeals
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - uploads:/data/uploads:ro
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "/backup.sh", "loop"]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,25 @@
+{
+  "name": "groupdeals",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GROUPDEALS — plateforme panafricaine d'achats groupés (GROUPIREX)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "npm run test -w @groupdeals/core && npm run test -w @groupdeals/api",
+    "build": "npm run build -w @groupdeals/web && npm run build -w @groupdeals/api",
+    "typecheck": "npm run typecheck -w @groupdeals/core && npm run typecheck -w @groupdeals/api",
+    "migrate": "npm run migrate -w @groupdeals/api",
+    "seed:demo": "npm run seed:demo -w @groupdeals/api",
+    "dev": "npm run dev -w @groupdeals/api",
+    "start": "node apps/api/dist/server.js",
+    "i18n": "npm run i18n -w @groupdeals/web",
+    "i18n:check": "npm run i18n:check -w @groupdeals/web",
+    "test:e2e": "node apps/web/e2e/journey.mjs"
+  }
+}

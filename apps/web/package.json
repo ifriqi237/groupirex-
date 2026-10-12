@@ -1,0 +1,28 @@
+{
+  "name": "@groupdeals/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "i18n": "node scripts/i18n.mjs",
+    "i18n:check": "node scripts/i18n.mjs --check",
+    "e2e": "node e2e/journey.mjs",
+    "demo:record": "node scripts/record-demo.mjs",
+    "demo:build": "node build-demo.mjs",
+    "demo:test": "node e2e/demo.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "esbuild": "^0.28.0",
+    "pdf-lib": "^1.17.1",
+    "typescript": "^6.0.0",
+    "playwright": "^1.56.0"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules
+dist/
+uploads/
+.env
+*.log
+apps/web/scripts/missing-*.json
+demo-dist/

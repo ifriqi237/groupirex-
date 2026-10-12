@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img"><rect width="800" height="600" fill="#16275C"/><path d="M24 0V600M52 0V600M80 0V600M108 0V600M136 0V600M164 0V600M192 0V600M220 0V600M248 0V600M276 0V600M304 0V600M332 0V600M360 0V600M388 0V600M416 0V600M444 0V600M472 0V600M500 0V600M528 0V600M556 0V600M584 0V600M612 0V600M640 0V600M668 0V600M696 0V600M724 0V600M752 0V600M780 0V600" stroke="#FFFFFF" stroke-width="2" opacity="0.06"/><ellipse cx="400" cy="626.75" rx="294.5" ry="31" fill="#0D1B45" opacity="0.35"/><g transform="translate(400 340) scale(1.55) rotate(8)">
+    <path d="M-70-150-170-96l34 76 46-22v188H90V-42l46 22 34-76-100-54-32 34h-76z" fill="#FF4F79"/>
+    <g fill="#0D1B45"><circle cx="-50" cy="-40" r="20"/><circle cx="48" cy="-58" r="14"/><circle cx="40" cy="26" r="24"/><circle cx="-44" cy="60" r="16"/><circle cx="-126" cy="-76" r="12"/><circle cx="126" cy="-80" r="12"/><circle cx="52" cy="104" r="13"/></g>
+    <g fill="#20C45A"><circle cx="-50" cy="-40" r="8"/><circle cx="40" cy="26" r="10"/><circle cx="-44" cy="60" r="6"/></g>
+    <path d="M-38-150 0-112 38-150 22-162h-44z" fill="#FFFFFF"/><path d="M0-112v258" stroke="#0D1B45" stroke-width="5"/>
+    <g fill="#FFFFFF"><circle cx="0" cy="-72" r="5"/><circle cx="0" cy="-22" r="5"/><circle cx="0" cy="28" r="5"/><circle cx="0" cy="78" r="5"/></g></g></svg>

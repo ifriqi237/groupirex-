@@ -1,0 +1,6 @@
+Inter — Copyright (c) The Inter Project Authors (https://github.com/rsms/inter)
+Poppins — Copyright (c) The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+
+Les deux familles sont distribuées sous licence SIL Open Font License 1.1
+(https://openfontlicense.org). Les fichiers de ce dossier sont des sous-ensembles
+latins au format WOFF.

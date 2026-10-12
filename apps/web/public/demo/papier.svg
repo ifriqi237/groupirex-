@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img"><rect width="800" height="600" fill="#E3E8F5"/><path d="M24 0V600M52 0V600M80 0V600M108 0V600M136 0V600M164 0V600M192 0V600M220 0V600M248 0V600M276 0V600M304 0V600M332 0V600M360 0V600M388 0V600M416 0V600M444 0V600M472 0V600M500 0V600M528 0V600M556 0V600M584 0V600M612 0V600M640 0V600M668 0V600M696 0V600M724 0V600M752 0V600M780 0V600" stroke="#0D1B45" stroke-width="2" opacity="0.05"/><ellipse cx="400" cy="494.25" rx="199.5" ry="21" fill="#0D1B45" opacity="0.1"/><g transform="translate(400 300) scale(1.05) rotate(0)">
+    <g transform="translate(0 20)">
+      <path d="M-150 40 0 100 150 40V-70L0-10-150-70z" fill="#B5773A"/><path d="M-150-70 0-130 150-70 0-10z" fill="#D79B5B"/><path d="M0-10V100" stroke="#0D1B45" stroke-width="4"/>
+      <path d="M-46-112 104-52v40L-46-72z" fill="#FFFFFF" opacity=".9"/>
+      <g transform="translate(-70 44)"><rect x="-56" y="-72" width="112" height="144" rx="6" fill="#FFFFFF" stroke="#0D1B45" stroke-width="5" transform="skewY(22)"/><path d="M-34-28h68M-34 0h68M-34 28h44" stroke="#0D1B45" stroke-width="6" stroke-linecap="round" transform="skewY(22)"/></g>
+      <rect x="40" y="6" width="74" height="40" rx="6" fill="#FF4F79" transform="skewY(-22) translate(0 52)"/>
+    </g></g></svg>

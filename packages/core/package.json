@@ -1,0 +1,12 @@
+{
+  "name": "@groupdeals/core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Moteurs métier GROUPDEALS : prix, commandes, logistique, droits. Aucune dépendance.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  }
+}

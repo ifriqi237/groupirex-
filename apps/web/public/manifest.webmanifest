@@ -1,0 +1,10 @@
+{
+  "name": "GROUPDEALS",
+  "short_name": "GroupDeals",
+  "description": "Importons ensemble et obtenons les prix usines.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0D1B45",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
