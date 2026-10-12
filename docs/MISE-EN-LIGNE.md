@@ -3,6 +3,14 @@
 Ce guide liste ce qui est prêt, ce qu'il reste à fournir ou décider, et les étapes pour ouvrir le site.
 Il est écrit pour être suivi par GROUPIREX avec l'aide d'un technicien pour les étapes « serveur ».
 
+## 0. Situation actuelle (12 octobre 2026)
+
+- Le site tourne en **pré-ouverture** sur **groupirex.com** (hébergement Node.js Hostinger, déployé automatiquement à chaque envoi sur la branche `main` du dépôt GitHub `ifriqi237/groupirex-`).
+- La base est un projet Supabase **dédié**, « groupdeals » (Paris), dans un schéma privé `groupdeals` que l'API publique de Supabase ne voit pas.
+- Mode `NODE_ENV=staging` : paiements simulés (un bandeau « Pré-ouverture » le dit à chaque visiteur), aucun email envoyé.
+- Tant qu'aucune boîte d'envoi n'est branchée, le réglage « email vérifié pour commander » est désactivé (sinon personne ne pourrait commander). **À réactiver** dans *Back-office → Réglages* dès que les emails partent.
+- Limite connue de cet hébergement : l'application peut être mise en veille quand personne ne visite le site ; les tâches planifiées (expiration des commandes non payées, rappels) s'exécutent alors au réveil suivant. Un VPS (§3) n'a pas cette limite.
+
 ## 1. Ce qui est prêt dans le code
 
 | Domaine | État |

@@ -23,7 +23,7 @@ export function OrdersAdminPage() {
   return (
     <Page title={t('Commandes')} intro={data ? t('{n} commandes dans cette vue', { n: data.total }) : undefined}>
       <div className="toolbar">
-        <input className="input input--s" placeholder={t('Numéro, nom ou email')} value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 260 }} />
+        <input className="input input--s" placeholder={t('Numéro, nom ou email')} aria-label={t('Numéro, nom ou email')} value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 260 }} />
         <select className="select select--s" value={status} onChange={(e) => go({ status: e.target.value })} aria-label={t('État')}>
           <option value="">{t('Tous les états')}</option>
           {BUCKETS.map((b) => <option key={b} value={b}>{t(STATUS_LABEL[b])}</option>)}

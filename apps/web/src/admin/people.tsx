@@ -55,7 +55,7 @@ export function UsersPage() {
     <Page title={t('Utilisateurs')} intro={data ? t('{n} comptes', { n: data.total }) : undefined}
       actions={can('users.manage') && can('roles.manage') && <button className="btn btn--primary" onClick={() => setCreating(true)}><Icon name="plus" /> {t('Nouveau membre du personnel')}</button>}>
       <div className="toolbar">
-        <input className="input input--s" placeholder={t('Nom, email ou WhatsApp')} value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 280 }} />
+        <input className="input input--s" placeholder={t('Nom, email ou WhatsApp')} aria-label={t('Nom, email ou WhatsApp')} value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 280 }} />
         <label className="check"><input type="checkbox" checked={staff} onChange={(e) => setStaff(e.target.checked)} /><span className="small">{t('Personnel uniquement')}</span></label>
       </div>
       <ErrorNote error={error} onRetry={reload} />

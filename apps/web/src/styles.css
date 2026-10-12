@@ -17,7 +17,7 @@
   --pink-press: #DD3D55;
   --coral: #F05766;
   --coral-ink: #C2304B;      /* corail lisible en petit texte sur fond blanc ou rose */
-  --cta: linear-gradient(180deg, #E8566E 0%, #C93752 100%);  /* bouton principal (texte blanc lisible) */
+  --cta: linear-gradient(180deg, #D9475F 0%, #BF2F4B 100%);  /* bouton principal : texte blanc lisible (contraste 4,6 au plus clair) */
   --rose: #FCEFF1;           /* rose poudré : fonds */
   --rose-2: #FAE4E9;
   --rose-wash: #FDE3E7;      /* bouton secondaire rose */
@@ -158,7 +158,7 @@ table { border-collapse: collapse; width: 100%; }
 .header .iconbtn { background: var(--white); box-shadow: var(--shadow-s); width: 42px; height: 42px; }
 .subheader .select { border-color: transparent; background-color: var(--white); box-shadow: var(--shadow-s); }
 .header .select { border-color: transparent; background-color: var(--white); box-shadow: var(--shadow-s); }
-.iconbtn .dot { position: absolute; top: 5px; inset-inline-end: 4px; min-width: 17px; height: 17px; padding-inline: 4px; border-radius: 9px; background: var(--coral); color: var(--white); font-size: 11px; font-weight: 700; line-height: 17px; text-align: center; }
+.iconbtn .dot { position: absolute; top: 5px; inset-inline-end: 4px; min-width: 17px; height: 17px; padding-inline: 4px; border-radius: 9px; background: var(--coral-ink); color: var(--white); font-size: 11px; font-weight: 700; line-height: 17px; text-align: center; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: var(--white); display: grid; place-items: center; font-weight: 600; font-size: 0.8125rem; }
 @media (min-width: 900px) {
   .header__in { height: 68px; }
@@ -260,7 +260,7 @@ table { border-collapse: collapse; width: 100%; }
 .price-old { color: var(--slate); text-decoration: line-through; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; line-height: 1.5; background: var(--mist); color: var(--navy); white-space: nowrap; }
 .badge--green { background: var(--green-wash); color: var(--green-ink); }
-.badge--pink { background: var(--coral); color: var(--white); }
+.badge--pink { background: var(--coral-ink); color: var(--white); }
 .badge--deal { background: var(--deal-wash); color: var(--deal-ink); font-weight: 700; border-radius: 8px; padding: 3px 9px; font-size: 0.8125rem; }
 .badge--navy { background: var(--navy); color: var(--white); }
 .badge--amber { background: var(--amber-wash); color: var(--amber); }
@@ -485,7 +485,7 @@ article.deal { padding: 12px; border-radius: 24px; background: var(--white); box
 .steps li::after { content: ''; position: absolute; inset-inline-start: 16px; top: 34px; bottom: 0; width: 2.5px; background: repeating-linear-gradient(180deg, #E1DEE7 0 6px, transparent 6px 11px); }
 .steps li:last-child::after { display: none; }
 .steps li:last-child { padding-bottom: 0; }
-.steps li[data-state='done']::before { background: var(--coral); border-color: var(--coral); color: var(--white); }
+.steps li[data-state='done']::before { background: #CF3A55; border-color: #CF3A55; color: var(--white); }
 .steps li[data-state='done']::after { background: var(--coral); }
 .steps li[data-state='skipped']::before { background: var(--mist); border-style: dashed; }
 .steps li[data-state='next']::before { border: 3px solid var(--coral); color: var(--coral-ink); box-shadow: 0 0 0 5px rgba(240, 87, 102, 0.14); }
@@ -583,7 +583,7 @@ article.deal { padding: 12px; border-radius: 24px; background: var(--white); box
    ========================================================================== */
 .welcome {
   --coral: #F05766;
-  --coral-ink: #DD3D55;        /* corail lisible en petit texte sur fond rose */
+  --coral-ink: #C2304B;        /* corail lisible en petit texte sur fond rose (contraste 4,9) */
   --blush: #FCEFF1;
   --art: #EBAEB9;
   position: relative;
@@ -830,7 +830,11 @@ body:has(.checkout) .backbar { --bb: var(--rose-2); }
 .route__stop[data-state='done'] .route__dot { background: var(--coral); border-color: var(--coral); }
 .route__stop[data-state='here'] .route__dot { border: 3px solid var(--coral); box-shadow: 0 0 0 5px rgba(240, 87, 102, 0.14); }
 .route__stop[data-state='skipped'] .route__dot { border-style: dashed; }
-.route__label { font-size: 0.8125rem; font-weight: 500; color: #7E7A8E; line-height: 1.3; }
+.route__label { font-size: 0.8125rem; font-weight: 500; color: #6B6680; line-height: 1.3; }
 .route__stop[data-state='done'] .route__label { color: var(--navy); font-weight: 600; }
 .route__stop[data-state='here'] .route__label { color: var(--navy); font-weight: 700; }
 [dir='rtl'] .route__ship svg { transform: scaleX(-1); }
+/* Bandeau de pré-ouverture (paiement simulé hors production) */
+.previewbar { padding: 8px 16px; background: var(--navy); color: var(--white); font-size: 0.8125rem; line-height: 1.4; text-align: center; }
+.previewbar b { margin-inline-end: 6px; padding: 2px 8px; border-radius: 999px; background: var(--coral-ink); color: var(--white); font-weight: 600; }
+@media print { .previewbar { display: none; } }

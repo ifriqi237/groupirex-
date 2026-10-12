@@ -276,6 +276,18 @@ export function errorBody(code: ErrorCode, details?: Record<string, unknown>, re
 
 const API_PREFIX = '/api/v1';
 
+/**
+ * Adresse du visiteur derrière le serveur mandataire de l'hébergeur.
+ * Chaque mandataire AJOUTE l'adresse qu'il voit à la fin de X-Forwarded-For : seules les `hops`
+ * dernières entrées sont fiables. La première entrée, elle, est écrite par le client et se falsifie
+ * (elle permettait de contourner les limites de tentatives de connexion).
+ */
+export function forwardedIp(xff: string | string[] | undefined, remote: string | undefined, hops = 1): string {
+  const list = (Array.isArray(xff) ? xff.join(',') : (xff ?? '')).split(',').map((s) => s.trim()).filter(Boolean);
+  const pick = hops > 0 && list.length ? list[Math.max(0, list.length - hops)] : '';
+  return (pick || remote || '').replace(/^::ffff:/, '');
+}
+
 export function createHttpServer(app: App): http.Server {
   const { config } = app;
   const staticCache = new Map<string, { buf: Buffer; gz: Buffer | null; type: string; etag: string }>();
@@ -340,11 +352,7 @@ export function createHttpServer(app: App): http.Server {
   }
 
   function clientIp(req: http.IncomingMessage): string {
-    if (config.trustProxy) {
-      const xff = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
-      if (xff) return xff;
-    }
-    return (req.socket.remoteAddress ?? '').replace(/^::ffff:/, '');
+    return forwardedIp(config.trustProxy ? req.headers['x-forwarded-for'] : undefined, req.socket.remoteAddress, config.proxyHops);
   }
 
   function corsHeaders(req: http.IncomingMessage): Record<string, string> {

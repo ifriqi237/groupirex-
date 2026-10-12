@@ -162,7 +162,7 @@ export function ShipmentPage({ id }: { id: string }) {
                       {done && h.note && <div className="steps__meta">{h.note}</div>}
                       {d.step === next && (
                         <div className="stack-s" style={{ marginTop: 8 }}>
-                          <input className="input input--s" placeholder={t('Note visible du client (facultatif)')} value={note} onChange={(e) => setNote(e.target.value)} />
+                          <input className="input input--s" placeholder={t('Note visible du client (facultatif)')} aria-label={t('Note visible du client (facultatif)')} value={note} onChange={(e) => setNote(e.target.value)} />
                           <button className="btn btn--primary btn--s" onClick={() => advance.run(d.step)} disabled={advance.busy}>{t('Valider cette étape')}</button>
                         </div>
                       )}

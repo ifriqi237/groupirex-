@@ -20,6 +20,8 @@ export interface Config {
   /** Origines autorisées à appeler l'API depuis un navigateur. */
   corsOrigins: string[];
   trustProxy: boolean;
+  /** Nombre de serveurs mandataires devant l'API (hébergeur, Caddy) : 1 par défaut. */
+  proxyHops: number;
   database: PoolOptions;
   jwtSecret: string;
   /** Clé de chiffrement des secrets 2FA (32 octets, hex). */
@@ -137,6 +139,7 @@ export function loadConfig(overrides: Partial<Record<string, string>> = {}): Con
     publicUrl,
     corsOrigins: (e.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     trustProxy: bool(e.TRUST_PROXY, isProd),
+    proxyHops: Math.max(1, parseInt(e.TRUST_PROXY_HOPS ?? '1', 10) || 1),
     database,
     jwtSecret,
     encryptionKey: Buffer.from(keyHex, 'hex'),

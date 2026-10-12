@@ -164,6 +164,21 @@ function TabBar() {
   );
 }
 
+/**
+ * Site de pré-ouverture (NODE_ENV=staging) avec le paiement simulé : chaque visiteur est prévenu
+ * qu'aucun paiement réel n'est encaissé, pour qu'aucune commande « payée » ne soit prise pour vraie.
+ */
+function PreviewBar() {
+  const t = useT();
+  const cfg = useApi<{ environment?: string; paymentProvider?: string }>(DEMO ? null : '/config').data;
+  if (!cfg || cfg.environment !== 'staging' || cfg.paymentProvider !== 'sandbox') return null;
+  return (
+    <div className="previewbar" role="note">
+      <b>{t('Pré-ouverture')}</b> {t('Les paiements sont simulés : aucune somme n’est prélevée et aucune commande n’est expédiée.')}
+    </div>
+  );
+}
+
 function Footer() {
   const t = useT();
   const support = useApi<{ support?: { email: string; phone: string } }>('/config').data?.support;
@@ -271,15 +286,19 @@ function Shell() {
 
   if (BARE.includes(path) || (path === '/' && !user)) {
     return (
+      <>
+      <PreviewBar />
       <main id="main">
         <BackButton className="back--float" />
         {matchRoute(routes, path)}
       </main>
+      </>
     );
   }
 
   return (
     <>
+      <PreviewBar />
       <Header />
       {path !== '/' && <div className="wrap backbar"><BackButton /></div>}
       <main id="main">{matchRoute(routes, path) ?? <NotFound />}</main>

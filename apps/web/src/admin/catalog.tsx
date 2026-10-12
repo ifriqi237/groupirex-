@@ -174,7 +174,7 @@ export function ProductsPage() {
   const { data, error, reload } = useApi<{ items: AdminProduct[]; total: number }>(`/admin/products${qs({ q, pageSize: 100 })}`);
   return (
     <Page title={t('Produits')} actions={can('catalog.manage') && <Link to="/admin/products/new" className="btn btn--primary"><Icon name="plus" /> {t('Nouveau produit')}</Link>}>
-      <div className="toolbar"><input className="input input--s" placeholder={t('Rechercher un produit')} value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 320 }} /></div>
+      <div className="toolbar"><input className="input input--s" placeholder={t('Rechercher un produit')} aria-label={t('Rechercher un produit')} value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 320 }} /></div>
       <ErrorNote error={error} onRetry={reload} />
       <DataTable
         rows={data?.items}
