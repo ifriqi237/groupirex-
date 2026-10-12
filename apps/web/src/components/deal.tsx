@@ -115,6 +115,29 @@ export function Countdown({ deal }: { deal: Deal }) {
   );
 }
 
+/** Compte à rebours en trois cases (jours, heures, minutes ; heures, minutes, secondes le dernier jour). */
+export function CountdownTiles({ deal }: { deal: Deal }) {
+  const t = useT();
+  const upcoming = deal.status === 'UPCOMING';
+  const left = useCountdown(upcoming ? deal.secondsUntilStart : deal.secondsRemaining);
+  if (deal.status === 'COMPLETED' || deal.status === 'CANCELLED' || (!upcoming && left <= 0)) return <Countdown deal={deal} />;
+  const d = Math.floor(left / 86_400);
+  const h = Math.floor((left % 86_400) / 3600);
+  const m = Math.floor((left % 3600) / 60);
+  const sec = left % 60;
+  const cells: [number, string][] = d > 0 ? [[d, t('jours')], [h, t('heures')], [m, t('minutes')]] : [[h, t('heures')], [m, t('minutes')], [sec, t('secondes')]];
+  return (
+    <div className="tiles" role="timer" aria-label={`${upcoming ? t('Ouvre dans') : t('Se termine dans')} ${formatDuration(left, t)}`}>
+      <div className="tiles__label small">{upcoming ? t('La commande groupée ouvre dans') : t('La commande groupée se termine dans')}</div>
+      <div className={`tiles__row ${!upcoming && left < 86_400 ? 'tiles__row--urgent' : ''}`} aria-hidden="true">
+        {cells.map(([n, label]) => (
+          <div className="tiles__cell" key={label}><b className="num">{String(n).padStart(2, '0')}</b><span>{label}</span></div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function unitLabel(unit: string, n: number, t: (s: string) => string): string {
   const one: Record<string, string> = { UNIT: t('unité'), LOT: t('lot'), CARTON: t('carton'), PALLET: t('palette') };
   const many: Record<string, string> = { UNIT: t('unités'), LOT: t('lots'), CARTON: t('cartons'), PALLET: t('palettes') };

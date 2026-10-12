@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Countdown, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, unitLabel } from '../components/deal';
+import { Countdown, CountdownTiles, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, unitLabel } from '../components/deal';
 import { Empty, ErrorNote, Form, Icon, Loading, ProductImage, Select, Tabs, useAction, useApi, useToast } from '../components/ui';
 import { ApiError, downloadQuoteProforma, get, newIdempotencyKey, post, qs } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { DEMO } from '../lib/env';
+import { DEMO, asset } from '../lib/env';
 import { saveMessage } from '../lib/files';
 import { N_, formatNumber, useI18n, useT } from '../lib/i18n';
 import { Link, navigate, useLocation, leaveTo } from '../lib/router';
 import type { Category } from './home';
+import { Art } from '../components/art';
 
 /* -------------------------------------------------------------------------- */
 /* Liste des offres                                                            */
@@ -358,7 +359,7 @@ export function DealPage({ slug }: { slug: string }) {
         <span className="muted">{t('Total pour {n} {unit}', { n: totalQty, unit: unitLabel(p.saleUnit, totalQty, t) })}</span>
         <span className="price" style={{ fontSize: '1.5rem', opacity: quoting ? 0.45 : 1 }}>{quote ? quote.total.formatted : '—'}</span>
       </div>
-      <button className="btn btn--primary btn--block" onClick={participate} disabled={!canGo}>
+      <button className="btn btn--primary btn--l btn--block" onClick={participate} disabled={!canGo}>
         {t('Participer au GroupDeals')}
       </button>
       {!deal.open && <p className="small muted">{closedReason(deal, t)}</p>}
@@ -373,9 +374,10 @@ export function DealPage({ slug }: { slug: string }) {
   );
 
   return (
+    <div className="rosebg--fade">
     <div className="wrap page">
-      <nav className="small muted" aria-label={t('Fil d’Ariane')} style={{ marginBottom: 16 }}>
-        <Link to="/deals" className="link">{t('Offres')}</Link> / <Link to={`/deals?category=${p.category.slug}`} className="link">{p.category.name}</Link>
+      <nav className="crumbs small" aria-label={t('Fil d’Ariane')}>
+        <Link to="/deals">{t('Offres')}</Link><span aria-hidden="true">›</span><Link to={`/deals?category=${p.category.slug}`}>{p.category.name}</Link>
       </nav>
 
       <div className="split split--shots">
@@ -386,40 +388,42 @@ export function DealPage({ slug }: { slug: string }) {
 
         <div className="stack">
           <div>
+            <div className="dealhead__cat">{p.category.name}</div>
             <h1 className="h1">{deal.title}</h1>
-            <p className="muted" style={{ marginTop: 8, maxWidth: '60ch' }}>{p.description}</p>
-          </div>
-
-          <div className="pricebox">
-            <p className="small muted">{t('Prix GROUPDEALS, livraison vers votre pays comprise')}</p>
-            <div className="row row--wrap" style={{ alignItems: 'baseline', marginTop: 4 }}>
-              {deal.price ? <span className="price price--xl">{deal.price.formatted}</span> : <span className="strong">{t(unavailableText(deal.availability))}</span>}
-              {deal.compareAtPrice && <span className="price-old">{deal.compareAtPrice.formatted}</span>}
-              {deal.discountPercent ? <span className="badge badge--deal num">−{deal.discountPercent} %</span> : null}
-            </div>
-            <p className="small muted" style={{ marginTop: 4 }}>{t('par {unit}', { unit: unitLabel(p.saleUnit, 1, t) })}{p.piecesPerSaleUnit > 1 ? ` (${t('{n} pièces', { n: p.piecesPerSaleUnit })})` : ''}</p>
-          </div>
-
-          <div>
-            <div className="gauge-head">
-              <span className="strong">{t('Remplissage du conteneur')}</span>
-              <b className="num">{deal.progress.percent} %</b>
-            </div>
-            <Gauge percent={deal.progress.percent} large label={t('Progression de la commande groupée')} />
-            <div className="gauge-legend">
-              <span className="num">
-                <b>{formatNumber(deal.progress.ordered, lang)}</b> {t('commandés sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
-              </span>
-            </div>
-            <div className="row row--between row--wrap" style={{ marginTop: 10 }}>
-              <Countdown deal={deal} />
-              <span className="small muted num">{t('{n} participants', { n: deal.progress.participants })}</span>
-            </div>
+            <p className="muted" style={{ marginTop: 10, maxWidth: '60ch', fontSize: '1.0625rem' }}>{p.description}</p>
           </div>
 
           {deal.status === 'CANCELLED' && deal.cancelReason && <div className="notice notice--warn"><Icon name="info" /><span>{deal.cancelReason}</span></div>}
 
-          <div className="panel sticky">{buyBox}</div>
+          <div className="panel buycard">
+            <div className="pricebox">
+              <p className="small muted">{t('Prix GROUPDEALS, livraison vers votre pays comprise')}</p>
+              <div className="row row--wrap" style={{ alignItems: 'baseline', marginTop: 4 }}>
+                {deal.price ? <span className="price price--xl">{deal.price.formatted}</span> : <span className="strong">{t(unavailableText(deal.availability))}</span>}
+                {deal.compareAtPrice && <span className="price-old">{deal.compareAtPrice.formatted}</span>}
+                {deal.discountPercent ? <span className="badge badge--deal num">−{deal.discountPercent} %</span> : null}
+              </div>
+              <p className="small muted" style={{ marginTop: 4 }}>{t('par {unit}', { unit: unitLabel(p.saleUnit, 1, t) })}{p.piecesPerSaleUnit > 1 ? ` (${t('{n} pièces', { n: p.piecesPerSaleUnit })})` : ''}</p>
+            </div>
+
+            <div>
+              <div className="gauge-head">
+                <span className="strong">{t('Remplissage du conteneur')}</span>
+                <b className="num">{deal.progress.percent} %</b>
+              </div>
+              <Gauge percent={deal.progress.percent} large label={t('Progression de la commande groupée')} />
+              <div className="gauge-legend">
+                <span className="num">
+                  <b>{formatNumber(deal.progress.ordered, lang)}</b> {t('commandés sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
+                </span>
+                <span className="num">{t('{n} participants', { n: deal.progress.participants })}</span>
+              </div>
+            </div>
+
+            <CountdownTiles deal={deal} />
+
+            <div className="buycard__buy">{buyBox}</div>
+          </div>
         </div>
       </div>
 
@@ -427,7 +431,7 @@ export function DealPage({ slug }: { slug: string }) {
         <div className="stack-l">
           {p.features.length > 0 && (
             <section>
-              <h2 className="h2" style={{ marginBottom: 12 }}>{t('Caractéristiques')}</h2>
+              <h2 className="h2" style={{ marginBottom: 16 }}>{t('Caractéristiques')}</h2>
               <ul className="bullets">{p.features.map((f) => <li key={f}>{f}</li>)}</ul>
             </section>
           )}
@@ -439,16 +443,26 @@ export function DealPage({ slug }: { slug: string }) {
               </table>
             </section>
           )}
+          <section>
+            <h2 className="h2" style={{ marginBottom: 16 }}>{t('Bon à savoir')}</h2>
+            <dl className="facts">
+              <div><dt>{t('Commande minimum')}</dt><dd className="num">{deal.minQuantity} {unitLabel(p.saleUnit, deal.minQuantity, t)}</dd></div>
+              <div><dt>{t('Unité de vente')}</dt><dd>{unitLabel(p.saleUnit, 1, t)}{p.piecesPerSaleUnit > 1 ? ` (${t('{n} pièces', { n: p.piecesPerSaleUnit })})` : ''}</dd></div>
+            </dl>
+          </section>
         </div>
-        <section>
-          <h2 className="h2" style={{ marginBottom: 12 }}>{t('Bon à savoir')}</h2>
-          <dl className="facts">
-            <div><dt>{t('Commande minimum')}</dt><dd className="num">{deal.minQuantity} {unitLabel(p.saleUnit, deal.minQuantity, t)}</dd></div>
-            <div><dt>{t('Unité de vente')}</dt><dd>{unitLabel(p.saleUnit, 1, t)}{p.piecesPerSaleUnit > 1 ? ` (${t('{n} pièces', { n: p.piecesPerSaleUnit })})` : ''}</dd></div>
-            <div><dt>{t('Origine')}</dt><dd>{p.origin ?? '—'}</dd></div>
-            <div><dt>{t('Délai estimé après la fin de la campagne')}</dt><dd className="num">{p.leadTimeDays ? t('{min} à {max} jours', { min: p.leadTimeDays.min, max: p.leadTimeDays.max }) : '—'}</dd></div>
-          </dl>
-          <p className="small muted" style={{ marginTop: 12 }}>{t('Vous retirez votre commande dans un bureau GROUPDEALS de votre pays. Chaque étape du transport vous est notifiée.')}</p>
+        <section className="trip">
+          <img className="trip__ship" src={asset('/welcome/ship.svg')} alt="" aria-hidden="true" />
+          <h2 className="h2">{t('Le trajet de votre colis')}</h2>
+          <p className="muted" style={{ marginTop: 6 }}>
+            {p.leadTimeDays ? t('Délai estimé : {min} à {max} jours après la fin de la campagne.', { min: p.leadTimeDays.min, max: p.leadTimeDays.max }) : t('Chaque étape du transport vous est notifiée.')}
+          </p>
+          <ol className="trip__steps">
+            <li><b>{t('Usine')}</b><span>{p.origin ?? t('Pays d’origine')}</span></li>
+            <li><b>{t('Traversée en conteneur')}</b><span>{t('Du port de départ au port de votre pays')}</span></li>
+            <li><b>{t('Dédouanement')}</b><span>{t('Pris en charge par GROUPDEALS')}</span></li>
+            <li><b>{t('Retrait au bureau')}</b><span>{t('Dans un bureau GROUPDEALS de votre pays')}</span></li>
+          </ol>
         </section>
       </div>
 
@@ -461,6 +475,7 @@ export function DealPage({ slug }: { slug: string }) {
           <button className="btn btn--primary" onClick={participate} disabled={!canGo}>{t('Participer')}</button>
         </div>
       )}
+    </div>
     </div>
   );
 }
@@ -666,9 +681,12 @@ export function CheckoutPage({ slug }: { slug: string }) {
   const blocked = !quote?.canOrder || needOffice || needPickup || quote.emailVerificationRequired;
 
   return (
+    <div className="rosebg checkout">
+    <Art ship={false} truck={false} plane={false} bubbles={false} />
     <div className="wrap wrap--narrow page">
       <Link to={`/deals/${slug}`} className="link small">{t('Revenir à l’offre')}</Link>
-      <h1 className="h1" style={{ marginTop: 8 }}>{t('Votre commande')}</h1>
+      <h1 className="h1" style={{ marginTop: 10 }}>{t('Votre commande')}</h1>
+      <p className="muted" style={{ marginTop: 6 }}>{t('Vérifiez votre commande et choisissez comment payer.')}</p>
 
       <div className="stack-l" style={{ marginTop: 24 }}>
         {quoteError && <ErrorNote error={quoteError} />}
@@ -768,7 +786,7 @@ export function CheckoutPage({ slug }: { slug: string }) {
               <div className="notice notice--warn" role="alert"><Icon name="alert" /><span>{t('Le prix a changé. Vérifiez le nouveau total ci-dessus, puis confirmez à nouveau.')}</span></div>
             )}
 
-            <button className="btn btn--primary btn--block" disabled={blocked || submit.busy}>
+            <button className="btn btn--primary btn--l btn--block" disabled={blocked || submit.busy}>
               {submit.busy ? t('Enregistrement…') : method === 'ONLINE' ? t('Payer {amount}', { amount: quote.total.formatted }) : t('Réserver et payer au bureau')}
             </button>
             {/* Bouton grisé : la raison est écrite juste dessous, avec le geste qui le débloque. */}
@@ -796,6 +814,7 @@ export function CheckoutPage({ slug }: { slug: string }) {
           </Form>
         )}
       </div>
+    </div>
     </div>
   );
 }

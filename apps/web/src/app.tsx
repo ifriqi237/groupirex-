@@ -1,5 +1,5 @@
 import { ReactNode, Suspense, lazy, useEffect, useState } from 'react';
-import { BackButton, Icon, Loading, ToastProvider, useChooseLanguage } from './components/ui';
+import { BackButton, Icon, Loading, ToastProvider, useApi, useChooseLanguage } from './components/ui';
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, resetDemo } from './demo/backend';
 import { post } from './lib/api';
 import { AuthProvider, useAuth } from './lib/auth';
@@ -166,11 +166,12 @@ function TabBar() {
 
 function Footer() {
   const t = useT();
+  const support = useApi<{ support?: { email: string; phone: string } }>('/config').data?.support;
   return (
     <footer className="footer">
       <div className="wrap footer__grid">
         <div>
-          <div className="logo logo--light">GROUP<b>DEALS</b></div>
+          <div className="logo logo--light"><img src={asset('/welcome/mark.svg')} width="30" height="30" alt="" />GROUP<b>DEALS</b></div>
           <p style={{ marginTop: 12, maxWidth: '36ch' }}>{t('Importons ensemble et obtenons les prix usines.')}</p>
           <p className="small" style={{ marginTop: 8 }}>{t('Une plateforme GROUPIREX.')}</p>
         </div>
@@ -186,11 +187,12 @@ function Footer() {
           <div><Link to="/orders">{t('Mes commandes')}</Link></div>
           <div><Link to="/profile">{t('Profil')}</Link></div>
           <div><Link to="/notifications">{t('Notifications')}</Link></div>
-          <div><Link to="/support">{t('Support')}</Link></div>
         </div>
         <div className="stack-s">
-          <div className="strong" style={{ color: 'var(--white)' }}>{t('Comment ça marche')}</div>
-          <p className="small">{t('Vous choisissez une offre et votre quantité. Le prix affiché comprend la livraison vers votre pays. Vous payez, vous suivez les 9 étapes du transport, puis vous retirez votre colis au bureau.')}</p>
+          <div className="strong" style={{ color: 'var(--white)' }}>{t('Besoin d’aide ?')}</div>
+          {support?.phone && <div><a href={`tel:+${support.phone.replace(/\D/g, '')}`} className="strong">{support.phone}</a></div>}
+          {support?.email && <div><a href={`mailto:${support.email}`}>{support.email}</a></div>}
+          <div><Link to="/support">{t('Support et contact')}</Link></div>
         </div>
       </div>
       <nav className="wrap footer__legal" aria-label={t('Informations légales')}>

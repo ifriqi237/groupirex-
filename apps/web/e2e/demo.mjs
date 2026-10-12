@@ -121,11 +121,11 @@ try {
   check((await text()).includes('Votre adresse est considérée comme vérifiée') && (await page.locator('button', { hasText: 'Renvoyer le lien' }).count()) === 0, 'compte créé : adresse considérée comme vérifiée, aucune étape bloquante');
   await page.click('a.btn--primary');
   await page.waitForSelector('.deal');
-  // Accueil : fond maritime animé derrière la bannière (mer, port, porte-conteneurs qui avance).
-  const shipX = () => page.locator('.sea__ship--near').evaluate((el) => el.getBoundingClientRect().left);
-  const x0 = await shipX();
-  await page.waitForTimeout(1500);
-  check((await page.locator('.hero .sea__wave').count()) === 3 && (await page.locator('.hero .sea__port').count()) === 1 && (await shipX()) > x0, 'accueil : fond maritime animé, le porte-conteneurs avance');
+  // Accueil : l'univers de l'inscription (carte, bateau, camion, bulles), l'offre vedette, la route en 4 étapes, les catégories en bulles.
+  await page.waitForSelector('.hero .live');
+  const artOk = await page.evaluate(() => [...document.querySelectorAll('.hero .art img')].every((i) => i.complete && i.naturalWidth > 0));
+  check(artOk && (await page.locator('.hero .art img').count()) === 4 && (await page.locator('.hero .bubble').count()) > 0, 'accueil : décor de l’inscription dans la bannière (carte, avion, bateau, camion, bulles)');
+  check((await page.locator('.how__steps li').count()) === 4 && (await page.locator('.cats .cat img').count()) > 0 && (await page.locator('.band--rose .deal').count()) > 0, 'accueil : route en 4 étapes, catégories en bulles, offres sur la bande rose');
 
   console.log('\n3. Commande payée en ligne');
   await page.fill('.subheader input[type=search]', 'sandales');

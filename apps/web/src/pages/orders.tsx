@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LOGISTICS_STEPS } from '@groupdeals/core';
 import { MoneyDto, formatDuration, unitLabel, useCountdown } from '../components/deal';
 import { Empty, ErrorNote, Icon, Loading, Modal, ProductImage, Tabs, useAction, useApi, useToast } from '../components/ui';
@@ -7,6 +7,7 @@ import { saveMessage } from '../lib/files';
 import { N_, formatDate, useI18n, useT } from '../lib/i18n';
 import { Link, navigate, useLocation, leaveTo } from '../lib/router';
 import { OfficeCard, OfficeMap } from './deals';
+import { Art } from '../components/art';
 
 /* Libellés des statuts et des étapes (traduits à l'affichage). */
 export const STATUS_LABEL: Record<string, string> = {
@@ -43,6 +44,18 @@ export const STEP_LABEL: Record<string, string> = {
   CUSTOMS_CLEARED: N_('Colis dédouanés'),
   READY_FOR_PICKUP: N_('Colis disponible au retrait'),
   PICKED_UP: N_('Retrait colis confirmé'),
+};
+/** Libellés courts de la route maritime en tête du suivi. */
+const STEP_SHORT: Record<string, string> = {
+  ORDER_PLACED: N_('Commande'),
+  PRODUCTION_DONE: N_('Production'),
+  HANDED_TO_FORWARDER: N_('Transitaire'),
+  DEPARTED_ORIGIN: N_('Départ'),
+  VESSEL_IN_TRANSIT: N_('En mer'),
+  ARRIVED_PORT: N_('Port'),
+  CUSTOMS_CLEARED: N_('Douane'),
+  READY_FOR_PICKUP: N_('Au bureau'),
+  PICKED_UP: N_('Retiré'),
 };
 const DOC_LABEL: Record<string, string> = { PROFORMA: N_('Facture proforma'), INVOICE: N_('Facture'), RECEIPT: N_('Reçu de paiement') };
 
@@ -147,6 +160,40 @@ function Deadline({ expiresAt, serverNow }: { expiresAt: string; serverNow: numb
   return <span className="countdown">{left > 0 ? formatDuration(left, t) : t('délai dépassé')}</span>;
 }
 
+/** La route maritime : les 9 étapes sur une ligne, le porte-conteneurs à l'étape en cours. */
+function RouteBand({ steps, currentStep }: { steps: OrderDetail['logistics']['steps']; currentStep: number }) {
+  const t = useT();
+  const next = steps.find((x) => x.state === 'next')?.step;
+  const here = Math.max(1, Math.min(9, next ?? (currentStep >= 9 ? 9 : currentStep + 1)));
+  const reached = Math.max(0, Math.min(9, currentStep));
+  const box = useRef<HTMLDivElement>(null);
+  // Sur un petit écran, la route défile jusqu'à l'étape en cours.
+  useEffect(() => {
+    const el = box.current;
+    const stop = el?.querySelector<HTMLElement>('[data-state="here"]');
+    if (el && stop && el.scrollWidth > el.clientWidth) el.scrollLeft = stop.offsetLeft - el.clientWidth / 2 + stop.clientWidth / 2;
+  }, [here]);
+  return (
+    <div className="route" ref={box} role="img" aria-label={t('Étape {n} sur 9 : {label}', { n: here, label: t(STEP_LABEL[LOGISTICS_STEPS[here - 1].code]) })}>
+      <div className="route__in" aria-hidden="true">
+        <div className="route__line" />
+        <div className="route__done" style={{ width: `${(Math.max(1, reached) - 1) * (100 / 9)}%` }} />
+        {LOGISTICS_STEPS.map((def) => {
+          const s = steps.find((x) => x.step === def.step);
+          const state = def.step === here && s?.state !== 'done' ? 'here' : (s?.state ?? 'pending');
+          return (
+            <div className="route__stop" data-state={state} key={def.step}>
+              <span className="route__ship">{def.step === here && <svg width="40" height="28" viewBox="0 0 40 28" fill="none"><path d="M3 18h34l-4.5 8h-25z" fill="#0D1B45" /><rect x="9" y="9" width="7" height="9" fill="#F05766" /><rect x="17" y="9" width="7" height="9" fill="#F4A3B0" /><rect x="25" y="9" width="7" height="9" fill="#F05766" /><rect x="13" y="2" width="7" height="7" fill="#F4A3B0" /></svg>}</span>
+              <span className="route__dot">{s?.state === 'done' && <Icon name="check" size={13} />}</span>
+              <span className="route__label">{t(STEP_SHORT[def.code])}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Voyage({ vessel }: { vessel: NonNullable<OrderDetail['logistics']['vessel']> }) {
   const t = useT();
   const { lang } = useI18n();
@@ -215,15 +262,25 @@ export function OrderPage({ id }: { id: string }) {
   const proforma = o.documents.find((d) => d.kind === 'PROFORMA');
 
   return (
-    <div className="wrap wrap--narrow page">
-      <Link to="/orders" className="link small">{t('Mes commandes')}</Link>
-      <div className="row row--between row--wrap" style={{ marginTop: 8 }}>
-        <h1 className="h1 num">{o.number}</h1>
-        <StatusBadge status={o.status} />
+    <>
+    <section className="orderhead rosebg">
+      <Art plane={false} ship={false} truck={false} bubbles={false} />
+      <div className="wrap wrap--narrow orderhead__in">
+        <Link to="/orders" className="link small">{t('Mes commandes')}</Link>
+        <div className="orderhead__row">
+          {o.product.cover ? <span className="orderhead__img"><ProductImage src={o.product.cover.thumbnailUrl ?? o.product.cover.url} alt="" /></span> : null}
+          <div className="grow">
+            <div className="orderhead__product">{o.product.name}</div>
+            <h1 className="h1 num">{o.number}</h1>
+            <p className="muted small" style={{ marginTop: 4 }}>{t('Passée le {date}', { date: formatDate(o.createdAt, lang, true) })}, <span className="num strong" style={{ color: 'var(--navy)' }}>{o.total.formatted}</span></p>
+          </div>
+          <StatusBadge status={o.status} />
+        </div>
+        {paid && !['REFUND_PENDING', 'REFUNDED'].includes(o.status) && <RouteBand steps={o.logistics.steps} currentStep={o.logistics.currentStep} />}
       </div>
-      <p className="muted small" style={{ marginTop: 4 }}>{t('Passée le {date}', { date: formatDate(o.createdAt, lang, true) })}</p>
-
-      <div className="stack-l" style={{ marginTop: 24 }}>
+    </section>
+    <div className="wrap wrap--narrow page">
+      <div className="stack-l">
         <ErrorNote error={pay.error ?? cancel.error ?? doc.error} />
 
         {/* Paiement en ligne en attente */}
@@ -364,6 +421,7 @@ export function OrderPage({ id }: { id: string }) {
         </Modal>
       )}
     </div>
+    </>
   );
 }
 

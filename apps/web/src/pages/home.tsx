@@ -1,9 +1,10 @@
 import { Countdown, Deal, DealGrid, Gauge, unitLabel } from '../components/deal';
 import { Empty, ErrorNote, Icon, Loading, ProductImage, useApi } from '../components/ui';
 import { useAuth } from '../lib/auth';
-import { formatNumber, useI18n, useT } from '../lib/i18n';
+import { N_, formatNumber, useI18n, useT } from '../lib/i18n';
+import { asset } from '../lib/env';
 import { Link } from '../lib/router';
-import { HeroSea } from '../components/sea';
+import { Art } from '../components/art';
 
 export interface Category {
   id: string;
@@ -23,40 +24,50 @@ interface HomeData {
   upcoming: Deal[];
 }
 
-/** L'offre mise en avant, « en direct » : c'est elle qui montre ce qu'est un achat groupé. */
+/** L'offre mise en avant, « en direct », posée sur une pile de cartes : c'est elle qui montre ce qu'est un achat groupé. */
 function LiveDeal({ deal }: { deal: Deal }) {
   const t = useT();
   const { lang } = useI18n();
   return (
-    <Link to={`/deals/${deal.slug}`} className="live">
-      <div className="live__media">{deal.product.cover && <ProductImage src={deal.product.cover.url} alt={deal.product.cover.alt} width="800" height="500" />}</div>
-      <div className="live__body">
-        <div className="row row--between row--top">
+    <div className="livewrap">
+      <Link to={`/deals/${deal.slug}`} className="live">
+        <div className="live__media">
+          {deal.product.cover && <ProductImage src={deal.product.cover.url} alt={deal.product.cover.alt} width="800" height="500" />}
+          <span className="live__flag">{t('En vedette')}</span>
+          {deal.discountPercent ? <span className="badge badge--deal num">−{deal.discountPercent} %</span> : null}
+        </div>
+        <div className="live__body">
           <div>
             <div className="live__cat">{deal.product.category.name}</div>
             <h2>{deal.title}</h2>
           </div>
-          {deal.discountPercent ? <span className="badge badge--deal num">−{deal.discountPercent} %</span> : null}
-        </div>
-        <div className="row row--wrap" style={{ alignItems: 'baseline' }}>
-          {deal.price && <span className="price price--xl">{deal.price.formatted}</span>}
-          {deal.compareAtPrice && <span className="price-old">{deal.compareAtPrice.formatted}</span>}
-        </div>
-        <div>
-          <Gauge percent={deal.progress.percent} large label={t('Progression de la commande groupée')} />
-          <div className="gauge-legend">
-            <span className="num">
-              <b>{formatNumber(deal.progress.ordered, lang)}</b> / {formatNumber(deal.progress.target, lang)} {unitLabel(deal.product.saleUnit, deal.progress.target, t)}
-            </span>
-            <span className="num">{t('{n} participants', { n: deal.progress.participants })}</span>
+          <div className="row row--wrap" style={{ alignItems: 'baseline' }}>
+            {deal.price && <span className="price price--xl">{deal.price.formatted}</span>}
+            {deal.compareAtPrice && <span className="price-old">{deal.compareAtPrice.formatted}</span>}
           </div>
+          <div>
+            <Gauge percent={deal.progress.percent} large label={t('Progression de la commande groupée')} />
+            <div className="gauge-legend">
+              <span className="num">
+                <b>{formatNumber(deal.progress.ordered, lang)}</b> / {formatNumber(deal.progress.target, lang)} {unitLabel(deal.product.saleUnit, deal.progress.target, t)}
+              </span>
+              <span className="num">{t('{n} participants', { n: deal.progress.participants })}</span>
+            </div>
+          </div>
+          <div className="live__time"><Countdown deal={deal} /></div>
+          <span className="btn btn--navy btn--block">{t('Participer au GroupDeals')}</span>
         </div>
-        <Countdown deal={deal} />
-        <span className="btn btn--primary btn--l btn--block">{t('Participer au GroupDeals')}</span>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
+
+const STEPS: [icon: string, title: string, text: string][] = [
+  ['tag', N_('Choisissez une offre'), N_('Indiquez votre quantité : le prix affiché est final, livraison comprise.')],
+  ['card', N_('Payez en ligne ou au bureau'), N_('Mobile Money, carte bancaire, ou au bureau GROUPDEALS de votre pays.')],
+  ['ship', N_('Suivez le conteneur'), N_('Neuf étapes, de l’usine au port, puis jusqu’à votre ville.')],
+  ['pin', N_('Retirez votre colis'), N_('Au bureau de retrait choisi, sur présentation de votre QR code.')],
+];
 
 export function HomePage() {
   const t = useT();
@@ -66,22 +77,28 @@ export function HomePage() {
 
   return (
     <>
-      <section className="hero">
-        <HeroSea />
+      <section className="hero rosebg">
+        <Art />
         <div className="wrap hero__in">
           <div>
+            {data && data.featured.length > 0 && (
+              <p className="hero__badge">
+                <Icon name="ship" size={16} />
+                {data.featured.length > 1 ? t('{n} commandes groupées ouvertes', { n: data.featured.length }) : t('1 commande groupée ouverte')}
+              </p>
+            )}
             <h1 className="h-display">{t('Importons ensemble et obtenons les prix usines.')}</h1>
-            <p className="lead hero__lead" style={{ marginTop: 24 }}>
+            <p className="lead hero__lead" style={{ marginTop: 20 }}>
               {t('Rejoignez une commande groupée, payez un seul prix livraison comprise, et suivez votre colis jusqu’au retrait.')}
             </p>
             <div className="row row--wrap hero__ctas">
               <Link to="/deals" className="btn btn--primary btn--l">
                 {t('Voir les offres en cours')}
               </Link>
-              {!user && (
-                <Link to="/register" className="btn btn--outline-light btn--l">
-                  {t('Créer un compte')}
-                </Link>
+              {!user ? (
+                <Link to="/register" className="hero__more">{t('Créer un compte')}</Link>
+              ) : (
+                <a href="#how" className="hero__more" onClick={(e) => { e.preventDefault(); document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' }); }}>{t('Comment ça marche')}</a>
               )}
             </div>
           </div>
@@ -94,61 +111,48 @@ export function HomePage() {
           <h2 className="h2" id="how">{t('Comment ça marche')}</h2>
           <p className="how__lead">{t('Un achat groupé suit toujours le même chemin, de l’usine jusqu’au bureau de retrait de votre ville.')}</p>
           <ol className="how__steps">
-            <li>
-              <h3>{t('Choisissez une offre')}</h3>
-              <p>{t('Indiquez votre quantité : le prix affiché est final, livraison comprise.')}</p>
-            </li>
-            <li>
-              <h3>{t('Payez en ligne ou au bureau')}</h3>
-              <p>{t('Mobile Money, carte bancaire, ou au bureau GROUPDEALS de votre pays.')}</p>
-            </li>
-            <li>
-              <h3>{t('Suivez le conteneur')}</h3>
-              <p>{t('Neuf étapes, de l’usine au port, puis jusqu’à votre ville.')}</p>
-            </li>
-            <li>
-              <h3>{t('Retirez votre colis')}</h3>
-              <p>{t('Au bureau de retrait choisi, sur présentation de votre QR code.')}</p>
-            </li>
+            {STEPS.map(([icon, title, text], i) => (
+              <li key={icon}>
+                <span className="how__icon"><Icon name={icon} size={30} /></span>
+                <span className="how__n num">{i + 1}</span>
+                <h3>{t(title)}</h3>
+                <p>{t(text)}</p>
+              </li>
+            ))}
           </ol>
         </div>
       </section>
 
-      <div className="wrap" style={{ paddingBottom: 24 }}>
+      <div className="wrap">
         {loading && !data && <Loading />}
-        <div style={{ marginTop: 24 }}>
-          <ErrorNote error={error} onRetry={reload} />
-        </div>
-
+        <ErrorNote error={error} onRetry={reload} />
         {data && (
-          <>
-            <section className="section" aria-labelledby="cats">
-              <div className="section__head">
-                <h2 className="h2" id="cats">
-                  {t('Catégories')}
-                </h2>
-              </div>
-              <div className="cats">
-                {data.categories.map((c) => (
-                  <Link key={c.id} to={`/deals?category=${c.slug}`} className="cat">
-                    {c.imageUrl && <img src={c.imageUrl} alt="" loading="lazy" width="400" height="320" />}
-                    <span className="cat__label">
-                      <b>{c.name}</b>
-                      {c.activeDeals > 0 && <span className="tiny num">{c.activeDeals > 1 ? t('{n} offres', { n: c.activeDeals }) : t('1 offre')}</span>}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </section>
+          <section className="section" style={{ marginTop: 24, marginBottom: 64 }} aria-labelledby="cats">
+            <div className="section__head">
+              <h2 className="h2" id="cats">{t('Catégories')}</h2>
+            </div>
+            <div className="cats">
+              {data.categories.map((c) => (
+                <Link key={c.id} to={`/deals?category=${c.slug}`} className="cat">
+                  {c.imageUrl && <img src={c.imageUrl} alt="" loading="lazy" width="232" height="232" />}
+                  <span className="cat__label">
+                    <b>{c.name}</b>
+                    {c.activeDeals > 0 && <span className="tiny num">{c.activeDeals > 1 ? t('{n} offres', { n: c.activeDeals }) : t('1 offre')}</span>}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
 
+      {data && (
+        <div className="band band--rose">
+          <div className="wrap">
             <section className="section" aria-labelledby="featured">
               <div className="section__head">
-                <h2 className="h2" id="featured">
-                  {t('Offres en cours')}
-                </h2>
-                <Link to="/deals" className="link">
-                  {t('Tout voir')}
-                </Link>
+                <h2 className="h2" id="featured">{t('Offres en cours')}</h2>
+                <Link to="/deals" className="link">{t('Tout voir')}</Link>
               </div>
               {data.featured.length ? (
                 <DealGrid deals={data.featured.slice(1, 9).length ? data.featured.slice(1, 9) : data.featured} />
@@ -162,12 +166,8 @@ export function HomePage() {
             {data.endingSoon.length > 0 && (
               <section className="section" aria-labelledby="ending">
                 <div className="section__head">
-                  <h2 className="h2" id="ending">
-                    {t('Se terminent bientôt')}
-                  </h2>
-                  <Link to="/deals?sort=ending" className="link">
-                    {t('Tout voir')}
-                  </Link>
+                  <h2 className="h2" id="ending">{t('Se terminent bientôt')}</h2>
+                  <Link to="/deals?sort=ending" className="link">{t('Tout voir')}</Link>
                 </div>
                 <DealGrid deals={data.endingSoon} />
               </section>
@@ -176,33 +176,24 @@ export function HomePage() {
             {data.upcoming.length > 0 && (
               <section className="section" aria-labelledby="upcoming">
                 <div className="section__head">
-                  <h2 className="h2" id="upcoming">
-                    {t('Bientôt ouvertes')}
-                  </h2>
+                  <h2 className="h2" id="upcoming">{t('Bientôt ouvertes')}</h2>
                 </div>
                 <DealGrid deals={data.upcoming} />
               </section>
             )}
+          </div>
+        </div>
+      )}
 
-            <section className="section">
-              <div className="panel panel--navy">
-                <div className="split" style={{ alignItems: 'center' }}>
-                  <div>
-                    <h2 className="h2">{t('Vous ne trouvez pas votre produit ?')}</h2>
-                    <p style={{ marginTop: 8, color: '#C9D2EE', maxWidth: '52ch' }}>
-                      {t('Dites ce que vous recherchez. Les autres membres cliquent « Je veux aussi ce produit », et les demandes les plus suivies deviennent des commandes groupées.')}
-                    </p>
-                  </div>
-                  <div>
-                    <Link to="/matching" className="btn btn--primary">
-                      {t('Publier une demande')}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </>
-        )}
+      <div className="wrap" style={{ paddingBlock: '72px' }}>
+        <section className="match">
+          <img src={asset('/welcome/map.svg')} alt="" aria-hidden="true" />
+          <div className="match__text">
+            <h2 className="h2">{t('Vous ne trouvez pas votre produit ?')}</h2>
+            <p>{t('Dites ce que vous recherchez. Les autres membres cliquent « Je veux aussi ce produit », et les demandes les plus suivies deviennent des commandes groupées.')}</p>
+          </div>
+          <Link to="/matching" className="btn btn--navy btn--l">{t('Publier une demande')}</Link>
+        </section>
       </div>
 
       <section className="trust" aria-label={t('Nos engagements')}>
