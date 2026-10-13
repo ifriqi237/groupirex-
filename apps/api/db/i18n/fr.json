@@ -23,6 +23,7 @@
   "{name} pourra de nouveau se connecter.": "{name} pourra de nouveau se connecter.",
   "{name} sera déconnecté et ne pourra plus se connecter.": "{name} sera déconnecté et ne pourra plus se connecter.",
   "{paid} payés sur un objectif de {target} ({percent} %), {orders} commandes payées, {pending} en attente.": "{paid} payés sur un objectif de {target} ({percent} %), {orders} commandes payées, {pending} en attente.",
+  "© {year} {owner}. Tous droits réservés.": "© {year} {owner}. Tous droits réservés.",
   "1 commande groupée ouverte": "1 commande groupée ouverte",
   "1 offre": "1 offre",
   "1 partenaire": "1 partenaire",

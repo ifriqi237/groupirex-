@@ -181,7 +181,9 @@ function PreviewBar() {
 
 function Footer() {
   const t = useT();
-  const support = useApi<{ support?: { email: string; phone: string } }>('/config').data?.support;
+  const cfg = useApi<{ support?: { email: string; phone: string }; company?: { legalName: string } }>('/config').data;
+  const support = cfg?.support;
+  const owner = cfg?.company?.legalName || 'GROUPIREX';
   return (
     <footer className="footer">
       <div className="wrap footer__grid">
@@ -215,6 +217,7 @@ function Footer() {
         <Link to="/legal/mentions-legales">{t('Mentions légales')}</Link>
         <Link to="/legal/conditions">{t('Conditions générales')}</Link>
         <Link to="/legal/confidentialite">{t('Confidentialité')}</Link>
+        <span className="footer__copy">{t('© {year} {owner}. Tous droits réservés.', { year: new Date().getFullYear(), owner })}</span>
       </nav>
     </footer>
   );

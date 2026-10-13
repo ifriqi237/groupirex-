@@ -23,6 +23,7 @@
   "{name} pourra de nouveau se connecter.": "{name} will be able to sign in again.",
   "{name} sera déconnecté et ne pourra plus se connecter.": "{name} will be signed out and will no longer be able to sign in.",
   "{paid} payés sur un objectif de {target} ({percent} %), {orders} commandes payées, {pending} en attente.": "{paid} paid of a {target} target ({percent}%), {orders} paid orders, {pending} pending.",
+  "© {year} {owner}. Tous droits réservés.": "© {year} {owner}. All rights reserved.",
   "1 commande groupée ouverte": "1 group order open",
   "1 offre": "1 offer",
   "1 partenaire": "1 partner",

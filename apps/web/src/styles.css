@@ -843,3 +843,5 @@ body:has(.checkout) .backbar { --bb: var(--rose-2); }
 .gauge__held { position: absolute; inset-block: 0; background: repeating-linear-gradient(135deg, #1BAA55 0 4px, #8FD9AE 4px 8px); }
 .gauge-held-note { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.8125rem; color: var(--green-ink); font-weight: 500; }
 .gauge-held-note__swatch { flex: none; width: 14px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, #1BAA55 0 3px, #8FD9AE 3px 6px); }
+.footer__copy { margin-inline-start: auto; color: #A9B2D6; }
+@media (max-width: 640px) { .footer__copy { margin-inline-start: 0; flex-basis: 100%; } }
