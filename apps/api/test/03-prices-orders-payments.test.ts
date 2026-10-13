@@ -336,6 +336,8 @@ describe('Commandes : MOQ, quantités, idempotence (§14, §20, §21, §47)', ()
     const res = await participate(env, user.token, c.dealId, 40);
     const before = await env.api('GET', `/group-deals/${c.dealId}`, { token: user.token });
     assert.equal(before.body.deal.progress.ordered, 0, 'une commande non payée ne fait pas avancer la jauge');
+    assert.equal(before.body.deal.progress.reserved, 40, 'mais elle apparaît comme réservée, en attente de paiement');
+    assert.ok(before.body.deal.progress.reservedPercent > 0);
     assert.equal(before.body.deal.remainingQuantity, 60);
 
     env.app.clock.offsetMs = 31 * 60_000;
@@ -345,6 +347,7 @@ describe('Commandes : MOQ, quantités, idempotence (§14, §20, §21, §47)', ()
     env.app.clock.offsetMs = 0;
     assert.equal(expired.body.order.status, 'EXPIRED');
     assert.equal(after.body.deal.remainingQuantity, 100);
+    assert.equal(after.body.deal.progress.reserved, 0, 'une commande expirée n’est plus comptée comme réservée');
   });
 
   it('le client peut annuler sa commande tant qu’elle n’est pas payée', async () => {

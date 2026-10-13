@@ -838,3 +838,7 @@ body:has(.checkout) .backbar { --bb: var(--rose-2); }
 .previewbar { padding: 8px 16px; background: var(--navy); color: var(--white); font-size: 0.8125rem; line-height: 1.4; text-align: center; }
 .previewbar b { margin-inline-end: 6px; padding: 2px 8px; border-radius: 999px; background: var(--coral-ink); color: var(--white); font-weight: 600; }
 @media print { .previewbar { display: none; } }
+/* Réservations en attente de paiement : à la suite du remplissage, hachurées, sans compter dans le pourcentage. */
+.gauge__held { position: absolute; inset-block: 0; background: repeating-linear-gradient(135deg, #F7A9B6 0 4px, #FDE3E7 4px 8px); }
+.gauge-held-note { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.8125rem; color: var(--coral-ink); font-weight: 500; }
+.gauge-held-note__swatch { flex: none; width: 14px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, #F7A9B6 0 3px, #FDE3E7 3px 6px); box-shadow: inset 0 0 0 1px #F3B6C0; }

@@ -168,6 +168,9 @@ export async function offerDto(app: App, row: Row, viewer: Viewer, now: Date) {
       ordered: progress.orderedQuantity,
       target: progress.targetQuantity,
       percent: progress.percent,
+      /** Quantités réservées, en attente de paiement (au bureau ou en ligne) : montrées à part, elles ne remplissent pas la jauge. */
+      reserved: state.heldQuantity,
+      reservedPercent: state.targetQuantity > 0 ? Math.min(100 - Math.min(100, progress.percent), Math.floor((state.heldQuantity * 100) / state.targetQuantity)) : 0,
       participants: row.participants_count as number,
     },
     startsAt: row.starts_at as Date,

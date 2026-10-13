@@ -41,7 +41,7 @@ export interface Deal {
   minQuantity: number;
   maxPerOrder: number | null;
   remainingQuantity: number | null;
-  progress: { ordered: number; target: number; percent: number; participants: number };
+  progress: { ordered: number; target: number; percent: number; participants: number; reserved?: number; reservedPercent?: number };
   startsAt: string;
   endsAt: string;
   secondsRemaining: number;
@@ -53,8 +53,10 @@ export interface Deal {
  * La jauge collective, dessinée comme un conteneur qui se remplit.
  * Elle ne compte que les quantités payées.
  */
-export function Gauge({ percent, large, onNavy, label }: { percent: number; large?: boolean; onNavy?: boolean; label: string }) {
+export function Gauge({ percent, reserved = 0, large, onNavy, label }: { percent: number; reserved?: number; large?: boolean; onNavy?: boolean; label: string }) {
   const width = Math.max(percent > 0 ? 2 : 0, Math.min(100, percent));
+  // Les réservations en attente de paiement se voient à la suite, en hachuré : elles ne comptent pas encore.
+  const held = reserved > 0 ? Math.max(2, Math.min(100 - width, reserved)) : 0;
   return (
     <div
       className={`gauge ${large ? 'gauge--l' : ''} ${onNavy ? 'gauge--on-navy' : ''} ${percent >= 100 ? 'gauge--reached' : ''}`}
@@ -65,6 +67,7 @@ export function Gauge({ percent, large, onNavy, label }: { percent: number; larg
       aria-label={label}
     >
       <div className="gauge__fill" style={{ width: `${width}%` }} />
+      {held > 0 && <div className="gauge__held" style={{ insetInlineStart: `${width}%`, width: `${held}%` }} />}
     </div>
   );
 }
@@ -138,6 +141,23 @@ export function CountdownTiles({ deal }: { deal: Deal }) {
   );
 }
 
+/** « + 1 000 en attente de paiement » : quantités réservées mais pas encore payées, sous la jauge. */
+export function ReservedNote({ deal, long }: { deal: Deal; long?: boolean }) {
+  const t = useT();
+  const { lang } = useI18n();
+  const n = deal.progress.reserved ?? 0;
+  if (n <= 0) return null;
+  const unit = unitLabel(deal.product.saleUnit, n, t);
+  return (
+    <div className="gauge-held-note num">
+      <span className="gauge-held-note__swatch" aria-hidden="true" />
+      {long
+        ? t('En attente de paiement : {n} {unit}. La jauge les comptera dès leur paiement.', { n: formatNumber(n, lang), unit })
+        : t('+ {n} en attente de paiement', { n: formatNumber(n, lang) })}
+    </div>
+  );
+}
+
 export function unitLabel(unit: string, n: number, t: (s: string) => string): string {
   const one: Record<string, string> = { UNIT: t('unité'), LOT: t('lot'), CARTON: t('carton'), PALLET: t('palette') };
   const many: Record<string, string> = { UNIT: t('unités'), LOT: t('lots'), CARTON: t('cartons'), PALLET: t('palettes') };
@@ -198,13 +218,14 @@ export function DealCard({ deal }: { deal: Deal }) {
             {deal.compareAtPrice && <span className="price-old">{deal.compareAtPrice.formatted}</span>}
           </div>
           <div className="deal__foot">
-            <Gauge percent={deal.progress.percent} label={t('Progression de la commande groupée')} />
+            <Gauge percent={deal.progress.percent} reserved={deal.progress.reservedPercent} label={t('Progression de la commande groupée')} />
             <div className="gauge-legend">
               <span className="num">
                 <b>{formatNumber(deal.progress.ordered, lang)}</b> / {formatNumber(deal.progress.target, lang)} {unitLabel(deal.product.saleUnit, deal.progress.target, t)}
               </span>
               <span className="num strong">{deal.progress.percent} %</span>
             </div>
+            <ReservedNote deal={deal} />
             <div style={{ marginTop: 8 }}>
               <Countdown deal={deal} />
             </div>

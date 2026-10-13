@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Countdown, CountdownTiles, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, unitLabel } from '../components/deal';
+import { Countdown, CountdownTiles, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, ReservedNote, unitLabel } from '../components/deal';
 import { Empty, ErrorNote, Form, Icon, Loading, ProductImage, Select, Tabs, useAction, useApi, useToast } from '../components/ui';
 import { ApiError, downloadQuoteProforma, get, newIdempotencyKey, post, qs } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -411,13 +411,14 @@ export function DealPage({ slug }: { slug: string }) {
                 <span className="strong">{t('Remplissage du conteneur')}</span>
                 <b className="num">{deal.progress.percent} %</b>
               </div>
-              <Gauge percent={deal.progress.percent} large label={t('Progression de la commande groupée')} />
+              <Gauge percent={deal.progress.percent} reserved={deal.progress.reservedPercent} large label={t('Progression de la commande groupée')} />
               <div className="gauge-legend">
                 <span className="num">
-                  <b>{formatNumber(deal.progress.ordered, lang)}</b> {t('commandés sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
+                  <b>{formatNumber(deal.progress.ordered, lang)}</b> {t('payés sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
                 </span>
                 <span className="num">{t('{n} participants', { n: deal.progress.participants })}</span>
               </div>
+              <ReservedNote deal={deal} long />
             </div>
 
             <CountdownTiles deal={deal} />
