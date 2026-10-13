@@ -291,6 +291,7 @@ article.deal { padding: 12px; border-radius: 24px; background: var(--white); box
 .deal > .deal { flex: 1 1 auto; }
 .deal:hover .deal__name { text-decoration: underline; text-decoration-color: var(--coral); text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .countdown { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.deal__foot .row { flex-wrap: wrap; row-gap: 0; }
 .deal__foot .row .muted { white-space: nowrap; }
 .countdown--urgent { color: var(--red); }
 
@@ -776,7 +777,7 @@ article.deal { padding: 12px; border-radius: 24px; background: var(--white); box
 .tiles__label { color: var(--slate); }
 .tiles__row { margin-top: 8px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .tiles__cell { padding: 12px 6px; border-radius: 14px; background: var(--rose); text-align: center; }
-.tiles__cell b { display: block; font-family: var(--display); font-weight: 700; font-size: 1.625rem; line-height: 1.1; }
+.tiles__cell b { display: block; font-family: var(--display); font-weight: 700; font-size: 1.625rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .tiles__cell span { font-size: 0.8125rem; color: var(--slate); }
 .tiles__row--urgent .tiles__cell b { color: var(--red); }
 /* Le trajet du colis, de l'usine au bureau */
@@ -839,6 +840,6 @@ body:has(.checkout) .backbar { --bb: var(--rose-2); }
 .previewbar b { margin-inline-end: 6px; padding: 2px 8px; border-radius: 999px; background: var(--coral-ink); color: var(--white); font-weight: 600; }
 @media print { .previewbar { display: none; } }
 /* Réservations en attente de paiement : à la suite du remplissage, hachurées, sans compter dans le pourcentage. */
-.gauge__held { position: absolute; inset-block: 0; background: repeating-linear-gradient(135deg, #F7A9B6 0 4px, #FDE3E7 4px 8px); }
-.gauge-held-note { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.8125rem; color: var(--coral-ink); font-weight: 500; }
-.gauge-held-note__swatch { flex: none; width: 14px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, #F7A9B6 0 3px, #FDE3E7 3px 6px); box-shadow: inset 0 0 0 1px #F3B6C0; }
+.gauge__held { position: absolute; inset-block: 0; background: repeating-linear-gradient(135deg, #1BAA55 0 4px, #8FD9AE 4px 8px); }
+.gauge-held-note { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.8125rem; color: var(--green-ink); font-weight: 500; }
+.gauge-held-note__swatch { flex: none; width: 14px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, #1BAA55 0 3px, #8FD9AE 3px 6px); }

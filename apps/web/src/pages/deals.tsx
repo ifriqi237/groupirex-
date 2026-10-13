@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Countdown, CountdownTiles, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, ReservedNote, unitLabel } from '../components/deal';
+import { Countdown, CountdownTiles, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, ReservedNote, taken, unitLabel } from '../components/deal';
 import { Empty, ErrorNote, Form, Icon, Loading, ProductImage, Select, Tabs, useAction, useApi, useToast } from '../components/ui';
 import { ApiError, downloadQuoteProforma, get, newIdempotencyKey, post, qs } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -313,6 +313,7 @@ export function DealPage({ slug }: { slug: string }) {
   if (error || !deal) return <div className="wrap page"><ErrorNote error={error ?? new ApiError(404, 'NOT_FOUND', 'Élément introuvable.')} onRetry={reload} /></div>;
 
   const p = deal.product;
+  const got = taken(deal);
   const participate = () => {
     post('/analytics/events', { type: 'participate_click', entityType: 'deal', entityId: deal.id }).catch(() => undefined);
     const target = `/checkout/${deal.slug}?items=${encodeURIComponent(items.map((i) => `${i.variantId ?? ''}:${i.quantity}`).join(','))}`;
@@ -409,12 +410,12 @@ export function DealPage({ slug }: { slug: string }) {
             <div>
               <div className="gauge-head">
                 <span className="strong">{t('Remplissage du conteneur')}</span>
-                <b className="num">{deal.progress.percent} %</b>
+                <b className="num">{got.percent} %</b>
               </div>
-              <Gauge percent={deal.progress.percent} reserved={deal.progress.reservedPercent} large label={t('Progression de la commande groupée')} />
+              <Gauge percent={deal.progress.percent} reserved={got.percent - deal.progress.percent} large label={t('Progression de la commande groupée')} />
               <div className="gauge-legend">
                 <span className="num">
-                  <b>{formatNumber(deal.progress.ordered, lang)}</b> {t('payés sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
+                  <b>{formatNumber(got.n, lang)}</b> {t('pris sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
                 </span>
                 <span className="num">{t('{n} participants', { n: deal.progress.participants })}</span>
               </div>

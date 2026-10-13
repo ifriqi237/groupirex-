@@ -1,4 +1,4 @@
-import { Countdown, Deal, DealGrid, Gauge, ReservedNote, unitLabel } from '../components/deal';
+import { Countdown, Deal, DealGrid, Gauge, ReservedNote, taken, unitLabel } from '../components/deal';
 import { Empty, ErrorNote, Icon, Loading, ProductImage, useApi } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { N_, formatNumber, useI18n, useT } from '../lib/i18n';
@@ -28,6 +28,7 @@ interface HomeData {
 function LiveDeal({ deal }: { deal: Deal }) {
   const t = useT();
   const { lang } = useI18n();
+  const got = taken(deal);
   return (
     <div className="livewrap">
       <Link to={`/deals/${deal.slug}`} className="live">
@@ -46,10 +47,10 @@ function LiveDeal({ deal }: { deal: Deal }) {
             {deal.compareAtPrice && <span className="price-old">{deal.compareAtPrice.formatted}</span>}
           </div>
           <div>
-            <Gauge percent={deal.progress.percent} reserved={deal.progress.reservedPercent} large label={t('Progression de la commande groupée')} />
+            <Gauge percent={deal.progress.percent} reserved={got.percent - deal.progress.percent} large label={t('Progression de la commande groupée')} />
             <div className="gauge-legend">
               <span className="num">
-                <b>{formatNumber(deal.progress.ordered, lang)}</b> / {formatNumber(deal.progress.target, lang)} {unitLabel(deal.product.saleUnit, deal.progress.target, t)}
+                <b>{formatNumber(got.n, lang)}</b> / {formatNumber(deal.progress.target, lang)} {unitLabel(deal.product.saleUnit, deal.progress.target, t)}
               </span>
               <span className="num">{t('{n} participants', { n: deal.progress.participants })}</span>
             </div>

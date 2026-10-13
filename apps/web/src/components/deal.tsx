@@ -50,12 +50,23 @@ export interface Deal {
 }
 
 /**
+ * Quantités déjà prises : payées + réservées en attente de paiement (au bureau ou en ligne).
+ * C'est ce que voit le client ; la décision de lancer la commande, elle, se fonde sur le payé.
+ */
+export function taken(deal: Deal): { n: number; percent: number; reserved: number } {
+  const reserved = deal.progress.reserved ?? 0;
+  const n = deal.progress.ordered + reserved;
+  const t = deal.progress.target;
+  return { n, reserved, percent: t > 0 ? Math.min(100, Math.floor((n * 100) / t)) : 0 };
+}
+
+/**
  * La jauge collective, dessinée comme un conteneur qui se remplit.
  * Elle ne compte que les quantités payées.
  */
 export function Gauge({ percent, reserved = 0, large, onNavy, label }: { percent: number; reserved?: number; large?: boolean; onNavy?: boolean; label: string }) {
   const width = Math.max(percent > 0 ? 2 : 0, Math.min(100, percent));
-  // Les réservations en attente de paiement se voient à la suite, en hachuré : elles ne comptent pas encore.
+  // Les réservations en attente de paiement se voient à la suite, en vert hachuré.
   const held = reserved > 0 ? Math.max(2, Math.min(100 - width, reserved)) : 0;
   return (
     <div
@@ -98,7 +109,7 @@ export function formatDuration(total: number, t: (s: string, v?: Record<string, 
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
   const pad = (n: number) => String(n).padStart(2, '0');
-  if (d > 0) return t('{d} j {h} h {m} min', { d, h: pad(h), m: pad(m) });
+  if (d > 0) return t('{d} j {h} h {m} min {s} s', { d, h: pad(h), m: pad(m), s: pad(s) });
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
@@ -128,11 +139,11 @@ export function CountdownTiles({ deal }: { deal: Deal }) {
   const h = Math.floor((left % 86_400) / 3600);
   const m = Math.floor((left % 3600) / 60);
   const sec = left % 60;
-  const cells: [number, string][] = d > 0 ? [[d, t('jours')], [h, t('heures')], [m, t('minutes')]] : [[h, t('heures')], [m, t('minutes')], [sec, t('secondes')]];
+  const cells: [number, string][] = d > 0 ? [[d, t('jours')], [h, t('heures')], [m, t('minutes')], [sec, t('secondes')]] : [[h, t('heures')], [m, t('minutes')], [sec, t('secondes')]];
   return (
     <div className="tiles" role="timer" aria-label={`${upcoming ? t('Ouvre dans') : t('Se termine dans')} ${formatDuration(left, t)}`}>
       <div className="tiles__label small">{upcoming ? t('La commande groupée ouvre dans') : t('La commande groupée se termine dans')}</div>
-      <div className={`tiles__row ${!upcoming && left < 86_400 ? 'tiles__row--urgent' : ''}`} aria-hidden="true">
+      <div className={`tiles__row ${!upcoming && left < 86_400 ? 'tiles__row--urgent' : ''}`} style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }} aria-hidden="true">
         {cells.map(([n, label]) => (
           <div className="tiles__cell" key={label}><b className="num">{String(n).padStart(2, '0')}</b><span>{label}</span></div>
         ))}
@@ -141,19 +152,18 @@ export function CountdownTiles({ deal }: { deal: Deal }) {
   );
 }
 
-/** « + 1 000 en attente de paiement » : quantités réservées mais pas encore payées, sous la jauge. */
+/** « dont 1 000 en attente de paiement » : la part des quantités prises qui n'est pas encore payée. */
 export function ReservedNote({ deal, long }: { deal: Deal; long?: boolean }) {
   const t = useT();
   const { lang } = useI18n();
   const n = deal.progress.reserved ?? 0;
   if (n <= 0) return null;
-  const unit = unitLabel(deal.product.saleUnit, n, t);
   return (
     <div className="gauge-held-note num">
       <span className="gauge-held-note__swatch" aria-hidden="true" />
       {long
-        ? t('En attente de paiement : {n} {unit}. La jauge les comptera dès leur paiement.', { n: formatNumber(n, lang), unit })
-        : t('+ {n} en attente de paiement', { n: formatNumber(n, lang) })}
+        ? t('Dont {n} en attente de paiement (réservés au bureau ou en ligne).', { n: formatNumber(n, lang) })
+        : t('dont {n} en attente de paiement', { n: formatNumber(n, lang) })}
     </div>
   );
 }
@@ -199,6 +209,7 @@ export function DealCard({ deal }: { deal: Deal }) {
   const t = useT();
   const { lang } = useI18n();
   const reached = deal.progress.percent >= 100;
+  const got = taken(deal);
   return (
     <article className="deal">
       <Link to={`/deals/${deal.slug}`} className="deal" aria-label={deal.title}>
@@ -218,12 +229,12 @@ export function DealCard({ deal }: { deal: Deal }) {
             {deal.compareAtPrice && <span className="price-old">{deal.compareAtPrice.formatted}</span>}
           </div>
           <div className="deal__foot">
-            <Gauge percent={deal.progress.percent} reserved={deal.progress.reservedPercent} label={t('Progression de la commande groupée')} />
+            <Gauge percent={deal.progress.percent} reserved={got.percent - deal.progress.percent} label={t('Progression de la commande groupée')} />
             <div className="gauge-legend">
               <span className="num">
-                <b>{formatNumber(deal.progress.ordered, lang)}</b> / {formatNumber(deal.progress.target, lang)} {unitLabel(deal.product.saleUnit, deal.progress.target, t)}
+                <b>{formatNumber(got.n, lang)}</b> / {formatNumber(deal.progress.target, lang)} {unitLabel(deal.product.saleUnit, deal.progress.target, t)}
               </span>
-              <span className="num strong">{deal.progress.percent} %</span>
+              <span className="num strong">{got.percent} %</span>
             </div>
             <ReservedNote deal={deal} />
             <div style={{ marginTop: 8 }}>
