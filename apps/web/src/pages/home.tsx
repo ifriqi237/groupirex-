@@ -89,7 +89,7 @@ export function HomePage() {
                 {data.featured.length > 1 ? t('{n} commandes groupées ouvertes', { n: data.featured.length }) : t('1 commande groupée ouverte')}
               </p>
             )}
-            <h1 className="h-display">{t('Importons ensemble et obtenons les prix usines.')}</h1>
+            <h1 className="h-display">{t('Achetons ensemble, Obtenons des prix bas')}</h1>
             <p className="lead hero__lead" style={{ marginTop: 20 }}>
               {t('Rejoignez une commande groupée, payez un seul prix livraison comprise, et suivez votre colis jusqu’au retrait.')}
             </p>

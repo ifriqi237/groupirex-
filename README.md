@@ -1,7 +1,7 @@
 # GROUPDEALS
 
 Plateforme panafricaine d'achats groupés de GROUPIREX.
-« Importons ensemble et obtenons les prix usines. »
+« Achetons ensemble, Obtenons des prix bas »
 
 Ce dépôt contient l'API, la base PostgreSQL, le site client (mobile d'abord), le back-office et l'espace des bureaux locaux. L'application mobile Flutter n'est pas incluse : elle se branchera sur la même API.
 

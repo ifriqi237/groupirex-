@@ -100,7 +100,7 @@ const LABELS = {
     showQr: 'Présentez cette facture au bureau pour régler votre commande. L’agent lit le QR Code ou saisit le numéro de réservation.',
     priceNote: 'Les prix GROUPDEALS sont des prix finaux : la livraison vers votre pays est comprise.',
     proformaNote: "Ce document n'est pas un reçu. La commande est confirmée après encaissement.",
-    slogan: 'Importons ensemble et obtenons les prix usines.',
+    slogan: 'Achetons ensemble, Obtenons des prix bas',
   },
   en: {
     PROFORMA: 'PROFORMA INVOICE',
@@ -129,7 +129,7 @@ const LABELS = {
     showQr: 'Show this invoice at the office to pay for your order. The agent scans the QR code or enters the reservation number.',
     priceNote: 'GROUPDEALS prices are final prices: delivery to your country is included.',
     proformaNote: 'This document is not a receipt. The order is confirmed once payment is collected.',
-    slogan: "Let's import together and get factory prices.",
+    slogan: "Let's buy together, get low prices",
   },
 };
 

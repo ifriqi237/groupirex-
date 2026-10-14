@@ -1,7 +1,7 @@
 {
   "name": "GROUPDEALS",
   "short_name": "GroupDeals",
-  "description": "Importons ensemble et obtenons les prix usines.",
+  "description": "Achetons ensemble, Obtenons des prix bas",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",

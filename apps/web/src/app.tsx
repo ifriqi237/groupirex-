@@ -189,7 +189,7 @@ function Footer() {
       <div className="wrap footer__grid">
         <div>
           <div className="logo logo--light"><img src={asset('/welcome/mark.svg')} width="30" height="30" alt="" />GROUP<b>DEALS</b></div>
-          <p style={{ marginTop: 12, maxWidth: '36ch' }}>{t('Importons ensemble et obtenons les prix usines.')}</p>
+          <p style={{ marginTop: 12, maxWidth: '36ch' }}>{t('Achetons ensemble, Obtenons des prix bas')}</p>
           <p className="small" style={{ marginTop: 8 }}>{t('Une plateforme GROUPIREX.')}</p>
         </div>
         <div className="stack-s">
