@@ -41,12 +41,38 @@ export interface Deal {
   minQuantity: number;
   maxPerOrder: number | null;
   remainingQuantity: number | null;
-  progress: { ordered: number; target: number; percent: number; participants: number; reserved?: number; reservedPercent?: number };
+  progress: { ordered: number; target: number; percent: number; participants: number; reserved?: number; reservedPercent?: number; scope?: 'GLOBAL' | 'COUNTRY' };
+  /** Zone de la campagne ; `countries` vaut null pour une campagne internationale. */
+  geography?: { scope: 'NATIONAL' | 'MULTI_COUNTRY' | 'INTERNATIONAL'; countries: string[] | null };
   startsAt: string;
   endsAt: string;
   secondsRemaining: number;
   secondsUntilStart: number;
   serverTime: string;
+}
+
+/** Drapeau d'un pays à partir de son code ISO (CM -> 🇨🇲). */
+export function flagOf(code: string): string {
+  if (!/^[A-Za-z]{2}$/.test(code)) return '';
+  return String.fromCodePoint(...[...code.toUpperCase()].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65));
+}
+
+/** « Campagne nationale · 🇨🇲 Cameroun » : rappelle à qui la campagne est réservée. */
+export function ZoneBadge({ deal }: { deal: Deal }) {
+  const t = useT();
+  const { countries } = useAuth();
+  const g = deal.geography;
+  if (!g || g.scope === 'INTERNATIONAL' || !g.countries?.length) return null;
+  const name = (code: string) => countries.find((c) => c.code === code)?.name ?? code;
+  const label = g.scope === 'NATIONAL'
+    ? t('Campagne nationale : {pays}', { pays: name(g.countries[0]) })
+    : t('Campagne multipays : {pays}', { pays: g.countries.map(name).join(', ') });
+  return (
+    <span className="zonebadge" title={label}>
+      <span aria-hidden="true">{g.countries.slice(0, 4).map(flagOf).join(' ')}</span>
+      <span>{label}</span>
+    </span>
+  );
 }
 
 /**

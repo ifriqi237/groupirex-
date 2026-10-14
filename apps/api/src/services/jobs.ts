@@ -8,6 +8,7 @@
 import type { App } from '../app';
 import { Channel, ChannelSender, ConsoleSender, broadcast, processOutbox } from './notify';
 import { expireUnpaidOrders } from './orders';
+import { dealOpenIn } from './pricing';
 import { SmtpSender } from './email';
 
 interface Job {
@@ -82,7 +83,8 @@ export class Jobs {
         if (!claimed) return;
         await broadcast(
           tx, 'DEAL_ENDING', { title: d.title, endsAt: (d.ends_at as Date).toISOString() }, `/deals/${d.slug}`,
-          `SELECT user_id FROM favorites WHERE product_id = $4
+          `SELECT f.user_id FROM favorites f JOIN users u ON u.id = f.user_id JOIN group_deals d ON d.id = $5
+            WHERE f.product_id = $4 AND ${dealOpenIn('d', 'u.country_code')}
            UNION SELECT user_id FROM orders WHERE deal_id = $5 AND payment_status IN ('PENDING', 'FAILED')`,
           [d.product_id, d.id],
         );

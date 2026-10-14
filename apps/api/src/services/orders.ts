@@ -39,7 +39,7 @@ import { audit } from './audit';
 import { productThumb } from './doc-image';
 import { notify } from './notify';
 import { InvoiceData, UNIT_LABELS, sellerLines, winAnsiSafe } from './pdf';
-import { dealStateOf, loadOffer, localized, priceOffer } from './pricing';
+import { dealStateOf, loadOffer, localized, outsideCampaignCountries, priceOffer } from './pricing';
 import type { CountryRow } from './reference';
 
 export interface ItemInput {
@@ -138,6 +138,8 @@ export async function createOrder(app: App, input: CreateOrderInput): Promise<{ 
       // Verrou sur la campagne : les participations à une même campagne passent une par une.
       const offer = await loadOffer(tx, input.dealId, country.code, true);
       if (!offer || offer.stored_status === 'DRAFT') throw new DomainError('NOT_FOUND');
+      // Le pays est celui du compte, jamais celui envoyé par le navigateur.
+      if (outsideCampaignCountries(offer, country.code)) throw new DomainError('DEAL_NOT_IN_COUNTRY');
       if (!offer.product_active) throw new DomainError('DEAL_NOT_ACTIVE');
 
       const lines = await buildLines(app, tx, offer, input.items, country);

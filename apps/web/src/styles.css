@@ -845,3 +845,55 @@ body:has(.checkout) .backbar { --bb: var(--rose-2); }
 .gauge-held-note__swatch { flex: none; width: 14px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, #1BAA55 0 3px, #8FD9AE 3px 6px); }
 .footer__copy { margin-inline-start: auto; color: #A9B2D6; }
 @media (max-width: 640px) { .footer__copy { margin-inline-start: 0; flex-basis: 100%; } }
+
+/* ---------------------------------------------------------------- */
+/* Zone géographique d'une campagne (formulaire d'administration)    */
+/* ---------------------------------------------------------------- */
+.zone { border: 1px solid var(--line); border-radius: var(--r-panel); padding: var(--s5); margin: var(--s2) 0 var(--s4); background: var(--mist); min-width: 0; }
+.zone__title { display: inline-flex; align-items: center; gap: 8px; padding: 0 8px; font-family: var(--display); font-weight: 700; font-size: 1.0625rem; color: var(--navy); }
+.zone__q { margin: 0 0 var(--s3); color: var(--slate); }
+.zone__scopes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); }
+.zone__scope { padding: var(--s3) var(--s4); box-shadow: none; border: 2px solid var(--line); }
+.zone__scope p { margin-top: 2px; line-height: 1.4; }
+.zone__goal { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); margin-top: var(--s4); padding: var(--s3) var(--s4); background: var(--white); border-radius: var(--r-control); border: 1px solid var(--line); }
+.zone__goal .check input { accent-color: var(--coral); }
+.zone__bar { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: space-between; margin-top: var(--s4); }
+.zone__search { position: relative; flex: 1 1 240px; max-width: 360px; display: block; }
+.zone__search svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); color: var(--slate); pointer-events: none; }
+.zone__search .input { padding-inline-start: 38px; width: 100%; }
+.zone__bulk { gap: var(--s2); }
+.zone__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin-top: var(--s3); max-height: 340px; overflow-y: auto; padding: 2px; }
+.zone__country { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--white); border: 1.5px solid var(--line); border-radius: var(--r-control); min-height: 52px; }
+.zone__country.is-on { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(13, 27, 69, 0.08); }
+.zone__country.is-off { opacity: 0.55; }
+.zone__pick { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
+.zone__country.is-off .zone__pick { cursor: not-allowed; }
+.zone__pick input { width: 20px; height: 20px; accent-color: var(--navy); flex: none; }
+.zone__flag { font-size: 1.375rem; line-height: 1; flex: none; }
+.zone__name { display: flex; flex-direction: column; min-width: 0; font-weight: 500; line-height: 1.25; }
+.zone__name > span { font-weight: 400; }
+.zone__target { width: 92px; flex: none; padding: 6px 8px; min-height: 36px; }
+.zone__count { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s2); margin-top: var(--s3); font-weight: 600; color: var(--navy); }
+.zone__summary { margin: var(--s3) 0 0; padding: var(--s3) var(--s4); background: var(--white); border-radius: var(--r-control); border: 1px solid var(--line); }
+.zone .notice { margin-top: var(--s3); }
+.zone-flags { display: inline-flex; flex-wrap: wrap; gap: 2px 10px; }
+@media (max-width: 720px) {
+  .zone { padding: var(--s4) var(--s3); }
+  .zone__scopes { grid-template-columns: 1fr; }
+  .zone__search { max-width: none; }
+  .zone__list { grid-template-columns: 1fr; max-height: none; }
+}
+
+/* Badge de zone sur la fiche d'une campagne nationale ou multipays */
+.zonebadge { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 5px 12px; border-radius: 999px; background: var(--white); border: 1px solid var(--rose-line); color: var(--navy); font-size: 0.875rem; font-weight: 600; max-width: 100%; }
+.zonebadge > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zonebadge--card { margin-top: 0; padding: 3px 9px; font-size: 0.75rem; }
+
+/* Campagne non disponible dans le pays du visiteur */
+.notcountry { max-width: 620px; margin: var(--s7, 56px) auto; text-align: center; }
+.notcountry__icon { display: inline-grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--rose); color: var(--coral-ink); margin-bottom: var(--s4); }
+.notcountry p { margin: var(--s3) auto 0; max-width: 52ch; }
+.notcountry .btn { margin-top: var(--s5); }
+.zone__more { display: inline-block; margin-top: var(--s2); }
+.zone__list--goals { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+@media (max-width: 720px) { .zone__title { font-size: 1rem; } .zone__list--goals { grid-template-columns: 1fr; } }

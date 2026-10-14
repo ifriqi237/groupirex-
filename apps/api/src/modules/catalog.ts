@@ -9,7 +9,7 @@ import type { App } from '../app';
 import type { Row } from '../db/pool';
 import { Ctx } from '../http/server';
 import { pageOf, viewerOf } from '../http/viewer';
-import { OFFER_COLUMNS, OFFER_FROM, Viewer, loadOffer, localized, offerDto, priceOffer } from '../services/pricing';
+import { OFFER_COLUMNS, OFFER_FROM, Viewer, dealOpenIn, loadOffer, localized, offerDto, outsideCampaignCountries, priceOffer } from '../services/pricing';
 
 const listQuery = z.object({
   status: z.enum(['active', 'upcoming', 'ended', 'all']).default('active'),
@@ -39,6 +39,7 @@ export async function listCategories(app: App, viewer: Viewer, now: Date) {
     `SELECT c.*, (SELECT count(*)::int FROM group_deals d JOIN products p ON p.id = d.product_id
                    JOIN product_countries pc ON pc.product_id = p.id AND pc.country_code = $1
                   WHERE p.category_id = c.id AND d.stored_status = 'PUBLISHED'
+                    AND ${dealOpenIn('d', '$1')}
                     AND d.starts_at <= $2 AND d.ends_at > $2 AND p.deleted_at IS NULL) AS active_deals
        FROM categories c WHERE c.is_active AND c.deleted_at IS NULL ORDER BY c.sort_order, c.name`,
     [viewer.countryCode, now],
@@ -156,7 +157,7 @@ export function registerCatalogRoutes(app: App): void {
               (SELECT json_build_object('kind', m.kind, 'url', m.url, 'thumbnailUrl', m.thumbnail_url, 'alt', m.alt)
                  FROM product_media m WHERE m.product_id = p.id ORDER BY (m.kind = 'IMAGE') DESC, m.sort_order LIMIT 1) AS cover,
               (SELECT d.slug FROM group_deals d WHERE d.product_id = p.id AND d.stored_status = 'PUBLISHED'
-                  AND d.starts_at <= $2 AND d.ends_at > $2 ORDER BY d.ends_at LIMIT 1) AS active_deal_slug,
+                  AND ${dealOpenIn('d', '$1')} AND d.starts_at <= $2 AND d.ends_at > $2 ORDER BY d.ends_at LIMIT 1) AS active_deal_slug,
               count(*) OVER()::int AS total
          FROM products p JOIN categories c ON c.id = p.category_id
          LEFT JOIN product_countries pc ON pc.product_id = p.id AND pc.country_code = $1
@@ -188,8 +189,9 @@ export function registerCatalogRoutes(app: App): void {
     const deal = await app.db.one(
       `SELECT d.slug FROM group_deals d JOIN products p ON p.id = d.product_id
         WHERE ${byId ? 'p.id = $1::uuid' : 'p.slug = $1'} AND d.stored_status IN ('PUBLISHED', 'COMPLETED')
+          AND ${dealOpenIn('d', '$3')}
         ORDER BY (d.stored_status = 'PUBLISHED' AND d.ends_at > $2) DESC, d.ends_at DESC LIMIT 1`,
-      [ctx.params.id, ctx.now],
+      [ctx.params.id, ctx.now, viewer.countryCode],
     );
     if (!deal) throw new DomainError('NOT_FOUND');
     return dealDetail(app, ctx, viewer, deal.slug);
@@ -200,6 +202,8 @@ export function registerCatalogRoutes(app: App): void {
 async function dealDetail(app: App, ctx: Ctx, viewer: Viewer, idOrSlug: string) {
   const row = await loadOffer(app.db, idOrSlug, viewer.countryCode);
   if (!row || row.stored_status === 'DRAFT') throw new DomainError('NOT_FOUND');
+  // Lien direct vers une campagne réservée à d'autres pays : refusée, avec un message clair.
+  if (outsideCampaignCountries(row, viewer.countryCode)) throw new DomainError('DEAL_NOT_IN_COUNTRY');
   const ref = await app.reference.get();
   const priceCtx = await app.reference.priceContext(viewer.countryCode);
   const [media, variants, fav] = await Promise.all([

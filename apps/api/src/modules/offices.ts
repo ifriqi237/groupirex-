@@ -18,7 +18,7 @@ import { qrSvg } from '../lib/qr';
 import { audit } from '../services/audit';
 import { notify } from '../services/notify';
 import { applyPayment, createReservation, issueInvoice, officeDto, officeEligibility, reservationQrContent } from '../services/orders';
-import { localized } from '../services/pricing';
+import { dealStillOpenIn, localized } from '../services/pricing';
 
 /** Bureaux sur lesquels l'utilisateur peut agir : null = tous (direction, finance). */
 function officeScope(ctx: Ctx): string[] | null {
@@ -159,6 +159,7 @@ export function registerOfficeRoutes(app: App): void {
       if (!order) throw new DomainError('NOT_FOUND');
       if (!['PENDING', 'FAILED'].includes(order.payment_status)) throw new DomainError('ORDER_NOT_PAYABLE');
       if (order.expires_at <= ctx.now) throw new DomainError('ORDER_EXPIRED');
+      if (!(await dealStillOpenIn(tx, order.deal_id, order.country_code))) throw new DomainError('DEAL_NOT_IN_COUNTRY');
       if (!(await officeEligibility(app, order.total_amount, order.currency_code))) throw new DomainError('OFFICE_PAYMENT_NOT_ELIGIBLE');
       const office = await tx.one(`SELECT * FROM local_offices WHERE id = $1`, [ctx.body.officeId]);
       if (!office || office.country_code !== order.country_code) throw new DomainError('OFFICE_NOT_AVAILABLE');

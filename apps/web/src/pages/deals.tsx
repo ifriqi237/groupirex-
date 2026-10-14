@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Countdown, CountdownTiles, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, ReservedNote, taken, unitLabel } from '../components/deal';
+import { Countdown, CountdownTiles, Deal, DealGrid, FavoriteButton, Gauge, MoneyDto, ReservedNote, ZoneBadge, flagOf, taken, unitLabel } from '../components/deal';
 import { Empty, ErrorNote, Form, Icon, Loading, ProductImage, Select, Tabs, useAction, useApi, useToast } from '../components/ui';
 import { ApiError, downloadQuoteProforma, get, newIdempotencyKey, post, qs } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -261,6 +261,28 @@ function Gallery({ media, name }: { media: DealDetail['product']['media']; name:
   );
 }
 
+/** Lien direct vers une campagne réservée à d'autres pays. */
+function NotInCountry() {
+  const t = useT();
+  const { user, country, countries } = useAuth();
+  const here = countries.find((c) => c.code === country);
+  return (
+    <div className="wrap page">
+      <div className="notcountry">
+        <span className="notcountry__icon"><Icon name="globe" size={34} /></span>
+        <h1 className="h2">{t('Campagne indisponible dans votre pays')}</h1>
+        <p className="lead">{t('Cette campagne d’achat groupé n’est pas disponible dans votre pays. Découvrez les campagnes accessibles dans votre région.')}</p>
+        {here && (
+          <p className="small muted">
+            {user ? t('Pays de votre compte : {pays}.', { pays: `${flagOf(here.code)} ${here.name}` }) : t('Vous consultez GROUPDEALS pour : {pays}. Vous pouvez changer de pays en haut de la page.', { pays: `${flagOf(here.code)} ${here.name}` })}
+          </p>
+        )}
+        <Link to="/deals" className="btn btn--primary btn--l">{t('Découvrir les campagnes disponibles')}</Link>
+      </div>
+    </div>
+  );
+}
+
 export function DealPage({ slug }: { slug: string }) {
   const t = useT();
   const { lang } = useI18n();
@@ -310,6 +332,7 @@ export function DealPage({ slug }: { slug: string }) {
   }, [deal?.id, deal?.price?.amount, items]);
 
   if (loading && !deal) return <div className="wrap page"><Loading /></div>;
+  if (error?.code === 'DEAL_NOT_IN_COUNTRY') return <NotInCountry />;
   if (error || !deal) return <div className="wrap page"><ErrorNote error={error ?? new ApiError(404, 'NOT_FOUND', 'Élément introuvable.')} onRetry={reload} /></div>;
 
   const p = deal.product;
@@ -391,6 +414,7 @@ export function DealPage({ slug }: { slug: string }) {
           <div>
             <div className="dealhead__cat">{p.category.name}</div>
             <h1 className="h1">{deal.title}</h1>
+            <ZoneBadge deal={deal} />
             <p className="muted" style={{ marginTop: 10, maxWidth: '60ch', fontSize: '1.0625rem' }}>{p.description}</p>
           </div>
 
@@ -415,7 +439,7 @@ export function DealPage({ slug }: { slug: string }) {
               <Gauge percent={deal.progress.percent} reserved={got.percent - deal.progress.percent} large label={t('Progression de la commande groupée')} />
               <div className="gauge-legend">
                 <span className="num">
-                  <b>{formatNumber(got.n, lang)}</b> {t('pris sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
+                  <b>{formatNumber(got.n, lang)}</b> {deal.progress.scope === 'COUNTRY' ? t('pris sur l’objectif de votre pays :') : t('pris sur un objectif de')} <b>{formatNumber(deal.progress.target, lang)}</b>
                 </span>
                 <span className="num">{t('{n} participants', { n: deal.progress.participants })}</span>
               </div>

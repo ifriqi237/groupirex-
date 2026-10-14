@@ -156,6 +156,8 @@ export async function createCatalog(
     endsInMs?: number;
     publish?: boolean;
     supplierCost?: { amount: number; currency: string } | null;
+    /** Zone géographique de la campagne (internationale par défaut). */
+    zone?: { geographicScope: string; countries?: { countryCode: string; targetQuantity?: number }[]; goalScope?: string };
   } = {},
 ): Promise<Catalog> {
   const cats = await env.api('GET', '/admin/categories', { token: adminToken });
@@ -190,6 +192,7 @@ export async function createCatalog(
       maxPerOrder: opts.maxPerOrder ?? null,
       startsAt: new Date(now + (opts.startsInMs ?? -3_600_000)).toISOString(),
       endsAt: new Date(now + (opts.endsInMs ?? 10 * 86_400_000)).toISOString(),
+      ...(opts.zone ?? {}),
     },
   });
   if (deal.status !== 201) throw new Error(`Campagne : ${JSON.stringify(deal.body)}`);

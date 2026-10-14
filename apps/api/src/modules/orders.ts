@@ -21,7 +21,7 @@ import {
 import { UNIT_LABELS, quoteProformaData, renderInvoicePdf, sellerLines } from '../services/pdf';
 import { randomDigits } from '../lib/crypto';
 import { productThumb } from '../services/doc-image';
-import { dealStateOf, loadOffer, localized } from '../services/pricing';
+import { dealStateOf, loadOffer, localized, outsideCampaignCountries } from '../services/pricing';
 
 const itemsSchema = z
   .array(z.object({ variantId: z.string().uuid().nullish(), quantity: z.number().int().min(1).max(1_000_000) }))
@@ -51,6 +51,7 @@ export function registerOrderRoutes(app: App): void {
     const country = await app.reference.country(viewer.countryCode);
     const offer = await loadOffer(app.db, ctx.params.id, country.code);
     if (!offer || offer.stored_status === 'DRAFT') throw new DomainError('NOT_FOUND');
+    if (outsideCampaignCountries(offer, country.code)) throw new DomainError('DEAL_NOT_IN_COUNTRY');
     const lines = await buildLines(app, app.db, offer, ctx.body.items, country);
     const totalQuantity = lines.reduce((s, l) => s + l.quantity, 0);
     const total = lines.reduce((s, l) => s + l.lineTotal, 0);
@@ -108,6 +109,7 @@ export function registerOrderRoutes(app: App): void {
       const country = await app.reference.country(viewer.countryCode);
       const offer = await loadOffer(app.db, ctx.params.id, country.code);
       if (!offer || offer.stored_status === 'DRAFT') throw new DomainError('NOT_FOUND');
+    if (outsideCampaignCountries(offer, country.code)) throw new DomainError('DEAL_NOT_IN_COUNTRY');
       const lines = await buildLines(app, app.db, offer, ctx.body.items, country);
       const totalQuantity = lines.reduce((s, l) => s + l.quantity, 0);
       const total = lines.reduce((s, l) => s + l.lineTotal, 0);

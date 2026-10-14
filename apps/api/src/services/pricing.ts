@@ -21,11 +21,28 @@ import type { App } from '../app';
 import type { Db, Row } from '../db/pool';
 import type { MoneyDto } from './reference';
 
+/**
+ * Condition SQL « la campagne `alias` est ouverte aux clients du pays `param` ».
+ * Internationale : tous les pays (la livraison du produit est vérifiée à part, par product_countries).
+ * Nationale ou multipays : uniquement les pays listés dans group_deal_countries.
+ */
+export function dealOpenIn(alias: string, param: string): string {
+  return `(${alias}.geographic_scope = 'INTERNATIONAL' OR EXISTS (SELECT 1 FROM group_deal_countries gc WHERE gc.deal_id = ${alias}.id AND gc.country_code = ${param}))`;
+}
+
 /** Colonnes nécessaires au calcul et à l'affichage d'une offre pour le pays $1. */
 export const OFFER_COLUMNS = `
   d.id AS deal_id, d.slug AS deal_slug, d.title AS deal_title, d.stored_status, d.base_price_amount, d.base_price_currency,
   d.compare_at_amount, d.target_quantity, d.min_quantity, d.max_per_order, d.max_quantity, d.paid_quantity, d.held_quantity,
-  d.participants_count, d.starts_at, d.ends_at, d.is_featured, d.cancel_reason,
+  d.participants_count, d.starts_at, d.ends_at, d.is_featured, d.cancel_reason, d.geographic_scope, d.goal_scope,
+  (SELECT array_agg(gc.country_code::text ORDER BY gc.country_code) FROM group_deal_countries gc WHERE gc.deal_id = d.id) AS country_codes,
+  CASE WHEN d.goal_scope = 'PER_COUNTRY' THEN (
+    SELECT json_build_object(
+             'target', (SELECT gc.target_quantity FROM group_deal_countries gc WHERE gc.deal_id = d.id AND gc.country_code = $1),
+             'paid', COALESCE(sum(o.total_quantity) FILTER (WHERE o.payment_status = 'PAID'), 0),
+             'held', COALESCE(sum(o.total_quantity) FILTER (WHERE o.holds_quantity), 0),
+             'participants', count(DISTINCT o.user_id) FILTER (WHERE o.payment_status = 'PAID'))
+      FROM orders o WHERE o.deal_id = d.id AND o.country_code = $1) END AS country_goal,
   p.id AS product_id, p.slug AS product_slug, p.name AS product_name, p.description AS product_description,
   p.features, p.specifications, p.origin_country, p.lead_time_days_min, p.lead_time_days_max,
   p.sale_unit, p.pieces_per_sale_unit, p.supplier_cost_amount, p.supplier_cost_currency, p.i18n AS product_i18n,
@@ -42,7 +59,7 @@ export const OFFER_FROM = `
   JOIN products p ON p.id = d.product_id
   JOIN categories c ON c.id = p.category_id
   LEFT JOIN shipping_rates sr ON sr.product_id = p.id AND sr.country_code = $1 AND sr.is_current
-  LEFT JOIN product_countries pc ON pc.product_id = p.id AND pc.country_code = $1`;
+  LEFT JOIN product_countries pc ON pc.product_id = p.id AND pc.country_code = $1 AND ${dealOpenIn('d', '$1')}`;
 
 export function dealStateOf(row: Row): DealState {
   return {
@@ -131,6 +148,14 @@ export async function offerDto(app: App, row: Row, viewer: Viewer, now: Date) {
   const priced = priceOffer(ctx, row, viewer.countryCode, viewer.currencyCode);
   const state = dealStateOf(row);
   const progress = dealProgress(state, now);
+  // Objectif par pays : la jauge montre l'avancement du pays du visiteur. Le statut et
+  // l'ouverture de la campagne restent ceux de la campagne entière.
+  const goal = row.country_goal as { target: number | null; paid: number; held: number; participants: number } | null;
+  const local = goal && goal.target
+    ? { ordered: Number(goal.paid), target: goal.target, held: Number(goal.held), participants: Number(goal.participants) }
+    : null;
+  const shown = local ?? { ordered: progress.orderedQuantity, target: progress.targetQuantity, held: state.heldQuantity, participants: row.participants_count as number };
+  const shownPercent = shown.target > 0 ? Math.floor((shown.ordered * 100) / shown.target) : 0;
   const money = (amount: number): MoneyDto => app.reference.moneySync(ref, amount, viewer.currencyCode, viewer.lang);
   const price = priced.breakdown ? money(priced.breakdown.unitFinal) : null;
   const compareAtPrice = priced.compareAt ? money(priced.compareAt) : null;
@@ -165,13 +190,15 @@ export async function offerDto(app: App, row: Row, viewer: Viewer, now: Date) {
     maxPerOrder: row.max_per_order as number | null,
     remainingQuantity: remainingQuantity(state),
     progress: {
-      ordered: progress.orderedQuantity,
-      target: progress.targetQuantity,
-      percent: progress.percent,
+      ordered: shown.ordered,
+      target: shown.target,
+      percent: shownPercent,
       /** Quantités réservées, en attente de paiement (au bureau ou en ligne) : montrées à part, elles ne remplissent pas la jauge. */
-      reserved: state.heldQuantity,
-      reservedPercent: state.targetQuantity > 0 ? Math.min(100 - Math.min(100, progress.percent), Math.floor((state.heldQuantity * 100) / state.targetQuantity)) : 0,
-      participants: row.participants_count as number,
+      reserved: shown.held,
+      reservedPercent: shown.target > 0 ? Math.min(100 - Math.min(100, shownPercent), Math.floor((shown.held * 100) / shown.target)) : 0,
+      participants: shown.participants,
+      /** « COUNTRY » : objectif propre au pays du visiteur ; « GLOBAL » : objectif commun à tous les pays. */
+      scope: local ? 'COUNTRY' : 'GLOBAL',
     },
     startsAt: row.starts_at as Date,
     endsAt: row.ends_at as Date,
@@ -179,7 +206,28 @@ export async function offerDto(app: App, row: Row, viewer: Viewer, now: Date) {
     secondsUntilStart: progress.secondsUntilStart,
     serverTime: now,
     country: viewer.countryCode,
+    /** Zone de la campagne. `countries` : null pour une campagne internationale. */
+    geography: {
+      scope: (row.geographic_scope as string) ?? 'INTERNATIONAL',
+      countries: row.geographic_scope === 'INTERNATIONAL' ? null : ((row.country_codes as string[] | null) ?? []),
+    },
   };
+}
+
+/**
+ * Vrai si la campagne est réservée à d'autres pays que celui-ci.
+ * Une campagne réservée (au Cameroun, par exemple) n'existe pas pour les autres pays.
+ */
+export function outsideCampaignCountries(row: Row, countryCode: string): boolean {
+  if (row.geographic_scope === 'INTERNATIONAL' || row.geographic_scope === undefined) return false;
+  const list = (row.country_codes as string[] | null) ?? [];
+  return !list.includes(countryCode);
+}
+
+/** La campagne accepte-t-elle encore des clients de ce pays ? (pays retiré après une commande, par exemple) */
+export async function dealStillOpenIn(db: Db, dealId: string, countryCode: string): Promise<boolean> {
+  const row = await db.one(`SELECT 1 AS ok FROM group_deals d WHERE d.id = $1 AND ${dealOpenIn('d', '$2')}`, [dealId, countryCode]);
+  return !!row;
 }
 
 /** Charge une offre par identifiant ou par slug, pour un pays. */

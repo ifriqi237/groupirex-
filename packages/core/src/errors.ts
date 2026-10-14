@@ -53,6 +53,7 @@ export const ERRORS = {
   // Campagnes et participation
   DEAL_NOT_ACTIVE: def('DEAL_NOT_ACTIVE', 409, "Cette offre n'est pas ouverte aux participations.", 'BROWSE_DEALS'),
   DEAL_EXPIRED: def('DEAL_EXPIRED', 409, 'Cette offre est terminée.', 'BROWSE_DEALS'),
+  DEAL_NOT_IN_COUNTRY: def('DEAL_NOT_IN_COUNTRY', 403, "Cette campagne d'achat groupé n'est pas disponible dans votre pays. Découvrez les campagnes accessibles dans votre région.", 'BROWSE_DEALS'),
   DEAL_SOLD_OUT: def('DEAL_SOLD_OUT', 409, 'Toutes les quantités de cette offre sont réservées.', 'BROWSE_DEALS'),
   QUANTITY_BELOW_MOQ: def('QUANTITY_BELOW_MOQ', 422, 'La quantité est inférieure au minimum de commande.', 'ADJUST_QUANTITY'),
   QUANTITY_ABOVE_MAX: def('QUANTITY_ABOVE_MAX', 422, 'La quantité dépasse le maximum autorisé.', 'ADJUST_QUANTITY'),
@@ -67,6 +68,10 @@ export const ERRORS = {
   FX_RATE_MISSING: def('FX_RATE_MISSING', 503, 'Le prix ne peut pas être calculé pour le moment.', 'CONTACT_SUPPORT'),
   FX_RATE_STALE: def('FX_RATE_STALE', 503, 'Le prix est en cours de mise à jour. Réessayez plus tard.', 'RETRY'),
   PRICE_CHANGED: def('PRICE_CHANGED', 409, 'Le prix a changé. Vérifiez le nouveau montant.', 'RETRY'),
+
+  // Pays du compte
+  COUNTRY_CHANGE_PENDING_ORDERS: def('COUNTRY_CHANGE_PENDING_ORDERS', 409, 'Payez ou annulez vos commandes en attente avant de changer de pays.', 'NONE'),
+  COUNTRY_CHANGE_TOO_SOON: def('COUNTRY_CHANGE_TOO_SOON', 429, 'Vous avez déjà changé de pays récemment. Contactez le support pour un nouveau changement.', 'CONTACT_SUPPORT'),
 
   // Commandes et paiements
   ORDER_NOT_PAYABLE: def('ORDER_NOT_PAYABLE', 409, 'Cette commande ne peut plus être payée.', 'BROWSE_DEALS'),

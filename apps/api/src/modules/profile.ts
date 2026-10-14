@@ -7,8 +7,9 @@ import { DomainError } from '@groupdeals/core';
 import type { App } from '../app';
 import { Reply } from '../http/server';
 import { pageOf, viewerOf } from '../http/viewer';
-import { OFFER_COLUMNS, OFFER_FROM, offerDto } from '../services/pricing';
+import { OFFER_COLUMNS, OFFER_FROM, dealOpenIn, offerDto } from '../services/pricing';
 import { loadProfile } from './auth';
+import { audit } from '../services/audit';
 
 const updateSchema = z
   .object({
@@ -26,6 +27,31 @@ const updateSchema = z
   })
   .partial();
 
+/** Délai minimal entre deux changements de pays du compte. */
+const COUNTRY_CHANGE_DAYS = 30;
+
+/**
+ * Le pays du compte décide des campagnes visibles, du prix et de la devise.
+ * Pour qu'un changement de pays ne serve pas à contourner une campagne réservée :
+ *   - pas de changement tant qu'une commande attend son paiement (elle garde son pays d'origine) ;
+ *   - un seul changement par période de 30 jours (le premier est libre) ; au-delà, le support tranche ;
+ *   - chaque changement est inscrit au journal d'audit.
+ * Les commandes passées gardent leur pays, leur devise et leur prix : le changement ne vaut que pour la suite.
+ */
+async function guardCountryChange(app: App, userId: string, next: string | undefined, ctx: Parameters<typeof audit>[1]): Promise<void> {
+  if (!next) return;
+  const u = await app.db.one(`SELECT country_code::text AS country_code, country_changed_at FROM users WHERE id = $1`, [userId]);
+  if (!u || u.country_code === next) return;
+  const pending = await app.db.one(`SELECT count(*)::int AS n FROM orders WHERE user_id = $1 AND payment_status IN ('PENDING', 'FAILED')`, [userId]);
+  if (pending!.n > 0) throw new DomainError('COUNTRY_CHANGE_PENDING_ORDERS');
+  const now = app.clock.now();
+  if (u.country_changed_at && now.getTime() - (u.country_changed_at as Date).getTime() < COUNTRY_CHANGE_DAYS * 86_400_000) {
+    throw new DomainError('COUNTRY_CHANGE_TOO_SOON');
+  }
+  await app.db.query(`UPDATE users SET country_changed_at = $2 WHERE id = $1`, [userId, now]);
+  await audit(app.db, ctx, { action: 'user.country_change', entityType: 'user', entityId: userId, before: { country: u.country_code }, after: { country: next } });
+}
+
 export function registerProfileRoutes(app: App): void {
   const r = app.router;
 
@@ -40,6 +66,7 @@ export function registerProfileRoutes(app: App): void {
     const b = ctx.body as z.infer<typeof updateSchema>;
     const ref = await app.reference.get();
     if (b.countryCode) await app.reference.country(b.countryCode);
+    await guardCountryChange(app, me.id, b.countryCode, ctx);
     if (b.languageCode && !ref.languages.some((l) => l.code === b.languageCode && l.isActive)) {
       throw new DomainError('VALIDATION_FAILED', { fields: [{ path: 'languageCode', message: 'Langue indisponible' }] });
     }
@@ -65,6 +92,7 @@ export function registerProfileRoutes(app: App): void {
          ${OFFER_FROM}
          JOIN favorites fav ON fav.product_id = p.id AND fav.user_id = $2
         WHERE d.id = (SELECT d2.id FROM group_deals d2 WHERE d2.product_id = p.id AND d2.stored_status IN ('PUBLISHED', 'COMPLETED')
+                         AND ${dealOpenIn('d2', '$1')}
                        ORDER BY (d2.stored_status = 'PUBLISHED' AND d2.ends_at > $3) DESC, d2.ends_at DESC LIMIT 1)
         ORDER BY fav.created_at DESC`,
       [viewer.countryCode, ctx.me().id, ctx.now],

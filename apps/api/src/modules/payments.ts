@@ -12,6 +12,7 @@ import type { App } from '../app';
 import { Reply } from '../http/server';
 import { SandboxGateway } from '../services/gateway';
 import { PaymentOutcome, applyPayment } from '../services/orders';
+import { dealStillOpenIn } from '../services/pricing';
 
 /** Vérifie une transaction auprès du prestataire et l'applique à la commande correspondante. */
 async function verifyAndApply(app: App, lookup: { providerTxId?: string | null; txRef?: string | null }): Promise<{ outcome: PaymentOutcome | 'UNKNOWN'; orderId: string | null }> {
@@ -81,6 +82,8 @@ export function registerPaymentRoutes(app: App): void {
     if (!o) throw new DomainError('NOT_FOUND');
     if (o.payment_method !== 'ONLINE' || !['PENDING', 'FAILED'].includes(o.payment_status)) throw new DomainError('ORDER_NOT_PAYABLE');
     if (o.expires_at <= ctx.now) throw new DomainError('ORDER_EXPIRED');
+    // Pays retiré de la campagne depuis la commande : plus de nouvelle transaction.
+    if (!(await dealStillOpenIn(app.db, o.deal_id, o.country_code))) throw new DomainError('DEAL_NOT_IN_COUNTRY');
     const currency = await app.reference.currency(o.currency_code);
     const { checkoutUrl } = await app.gateway.createCheckout({
       txRef: o.tx_ref,

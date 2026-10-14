@@ -15,7 +15,7 @@ import { pageOf } from '../http/viewer';
 import { audit } from '../services/audit';
 import { broadcast, notify, notifyMany } from '../services/notify';
 import { attachToShipment } from '../services/orders';
-import { dealStateOf, priceOffer } from '../services/pricing';
+import { dealOpenIn, dealStateOf, priceOffer } from '../services/pricing';
 
 export function slugify(text: string): string {
   return (
@@ -111,6 +111,16 @@ const dealSchema = z.object({
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime(),
   isFeatured: z.boolean().default(false),
+  /**
+   * Zone géographique : qui voit la campagne et peut y participer.
+   * Absente (anciens clients de l'API) : campagne internationale, comme avant.
+   */
+  geographicScope: z.enum(['NATIONAL', 'MULTI_COUNTRY', 'INTERNATIONAL']).default('INTERNATIONAL'),
+  countries: z
+    .array(z.object({ countryCode: z.string().length(2).toUpperCase(), targetQuantity: z.number().int().min(1).max(100_000_000).nullish() }))
+    .max(80)
+    .default([]),
+  goalScope: z.enum(['GLOBAL', 'PER_COUNTRY']).default('GLOBAL'),
 });
 
 const decisionSchema = z.discriminatedUnion('type', [
@@ -551,7 +561,9 @@ export function registerAdminCatalogRoutes(app: App): void {
   const DEAL_SELECT = `
     SELECT d.*, p.name AS product_name, p.moq AS product_moq, p.base_price_amount AS product_base_amount, p.base_price_currency AS product_base_currency,
            (SELECT count(*)::int FROM orders o WHERE o.deal_id = d.id AND o.payment_status = 'PAID') AS paid_orders,
-           (SELECT count(*)::int FROM orders o WHERE o.deal_id = d.id AND o.payment_status IN ('PENDING','FAILED')) AS pending_orders
+           (SELECT count(*)::int FROM orders o WHERE o.deal_id = d.id AND o.payment_status IN ('PENDING','FAILED')) AS pending_orders,
+           (SELECT json_agg(json_build_object('code', gc.country_code, 'name', co.name, 'target', gc.target_quantity) ORDER BY co.name)
+              FROM group_deal_countries gc JOIN countries co ON co.code = gc.country_code WHERE gc.deal_id = d.id) AS countries
       FROM group_deals d JOIN products p ON p.id = d.product_id`;
 
   const dealAdminDto = (d: Row, now: Date) => {
@@ -583,24 +595,65 @@ export function registerAdminCatalogRoutes(app: App): void {
       startsAt: d.starts_at,
       endsAt: d.ends_at,
       isFeatured: d.is_featured,
+      geographicScope: d.geographic_scope,
+      goalScope: d.goal_scope,
+      /** Pays autorisés (vide pour une campagne internationale), avec l'objectif du pays si l'objectif est par pays. */
+      countries: ((d.countries as { code: string; name: string; target: number | null }[] | null) ?? []).map((c) => ({ code: c.code, name: c.name, targetQuantity: c.target })),
       cancelReason: d.cancel_reason,
       decidedAt: d.decided_at,
       createdAt: d.created_at,
     };
   };
 
-  r.get('/admin/deals', { permission: ['deals.manage', 'catalog.read'], query: z.object({ status: z.enum(['DRAFT', 'PUBLISHED', 'COMPLETED', 'CANCELLED', 'NEEDS_DECISION']).optional(), q: z.string().trim().max(80).optional(), page: z.string().optional(), pageSize: z.string().optional() }) }, async (ctx) => {
+  const listDealsQuery = z.object({
+    status: z.enum(['DRAFT', 'PUBLISHED', 'COMPLETED', 'CANCELLED', 'NEEDS_DECISION', 'ACTIVE', 'ENDED']).optional(),
+    scope: z.enum(['NATIONAL', 'MULTI_COUNTRY', 'INTERNATIONAL']).optional(),
+    country: z.string().length(2).toUpperCase().optional(),
+    q: z.string().trim().max(80).optional(),
+    page: z.string().optional(),
+    pageSize: z.string().optional(),
+  });
+  r.get('/admin/deals', { permission: ['deals.manage', 'catalog.read'], query: listDealsQuery }, async (ctx) => {
     const page = pageOf(ctx.query, 30, 100);
     const like = ctx.query.q ? `%${ctx.query.q.replace(/[\\%_]/g, '\\$&')}%` : null;
     const status = ctx.query.status ?? null;
     const rows = await app.db.all(
       `${DEAL_SELECT}
-        WHERE ($1::text IS NULL OR ($1 = 'NEEDS_DECISION' AND d.stored_status = 'PUBLISHED' AND d.ends_at <= $3) OR d.stored_status = $1)
+        WHERE ($1::text IS NULL
+               OR ($1 = 'NEEDS_DECISION' AND d.stored_status = 'PUBLISHED' AND d.ends_at <= $3)
+               OR ($1 = 'ACTIVE' AND d.stored_status = 'PUBLISHED' AND d.starts_at <= $3 AND d.ends_at > $3)
+               OR ($1 = 'ENDED' AND (d.stored_status IN ('COMPLETED', 'CANCELLED') OR (d.stored_status = 'PUBLISHED' AND d.ends_at <= $3)))
+               OR d.stored_status = $1)
           AND ($2::text IS NULL OR p.name ILIKE $2 OR d.title ILIKE $2)
+          AND ($4::text IS NULL OR d.geographic_scope = $4)
+          -- Campagnes ouvertes dans ce pays : réservées à ce pays, ou internationales avec le produit livré là-bas.
+          AND ($5::text IS NULL OR ${dealOpenIn('d', '$5')} AND EXISTS (SELECT 1 FROM product_countries pc WHERE pc.product_id = d.product_id AND pc.country_code = $5))
         ORDER BY (d.stored_status = 'PUBLISHED' AND d.ends_at <= $3) DESC, d.created_at DESC LIMIT ${page.pageSize} OFFSET ${page.offset}`,
-      [status, like, ctx.now],
+      [status, like, ctx.now, ctx.query.scope ?? null, ctx.query.country ?? null],
     );
     return { items: rows.map((d) => dealAdminDto(d, ctx.now)) };
+  });
+
+  /**
+   * Pays proposables pour une campagne : tous les pays actifs de GROUPIREX (jamais une liste en dur),
+   * avec, pour le produit choisi, la livraison possible ou non et la devise du pays.
+   */
+  r.get('/admin/deal-zone-countries', { permission: ['deals.manage', 'catalog.read'], query: z.object({ productId: z.string().uuid().optional() }) }, async (ctx) => {
+    const ref = await app.reference.get();
+    const delivered = ctx.query.productId
+      ? new Set((await app.db.all(
+          `SELECT pc.country_code::text AS c FROM product_countries pc
+             JOIN shipping_rates sr ON sr.product_id = pc.product_id AND sr.country_code = pc.country_code AND sr.is_current
+            WHERE pc.product_id = $1`,
+          [ctx.query.productId],
+        )).map((x) => x.c as string))
+      : null;
+    return {
+      countries: Object.values(ref.countries)
+        .filter((c) => c.isActive)
+        .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+        .map((c) => ({ code: c.code, name: c.name, currency: c.currencyCode, delivered: delivered ? delivered.has(c.code) : true })),
+    };
   });
 
   r.get('/admin/deals/:id', { permission: ['deals.manage', 'catalog.read'] }, async (ctx) => {
@@ -612,12 +665,78 @@ export function registerAdminCatalogRoutes(app: App): void {
         GROUP BY o.country_code, c.name, o.currency_code ORDER BY units DESC`,
       [d.id],
     );
+    // Avancement par pays autorisé (y compris ceux sans commande) : payé, en attente, objectif du pays.
+    const zone = await app.db.all(
+      `SELECT gc.country_code::text AS code, co.name, gc.target_quantity,
+              COALESCE(sum(o.total_quantity) FILTER (WHERE o.payment_status = 'PAID'), 0)::int AS paid,
+              COALESCE(sum(o.total_quantity) FILTER (WHERE o.holds_quantity), 0)::int AS held,
+              count(DISTINCT o.user_id) FILTER (WHERE o.payment_status = 'PAID')::int AS participants
+         FROM group_deal_countries gc JOIN countries co ON co.code = gc.country_code
+         LEFT JOIN orders o ON o.deal_id = gc.deal_id AND o.country_code = gc.country_code
+        WHERE gc.deal_id = $1 GROUP BY gc.country_code, co.name, gc.target_quantity ORDER BY co.name`,
+      [d.id],
+    );
     const ref = await app.reference.get();
     return {
       deal: dealAdminDto(d, ctx.now),
       byCountry: byCountry.map((x) => ({ country: { code: x.country_code, name: x.name }, orders: x.orders, units: x.units, revenue: app.reference.moneySync(ref, x.revenue, x.currency_code) })),
+      zone: zone.map((x) => ({
+        country: { code: x.code, name: x.name },
+        targetQuantity: x.target_quantity,
+        paidQuantity: x.paid,
+        heldQuantity: x.held,
+        participants: x.participants,
+        percent: x.target_quantity ? Math.floor((x.paid * 100) / x.target_quantity) : null,
+      })),
     };
   });
+
+  type Zone = { geographicScope: 'NATIONAL' | 'MULTI_COUNTRY' | 'INTERNATIONAL'; goalScope: 'GLOBAL' | 'PER_COUNTRY'; countries: { countryCode: string; targetQuantity: number | null }[] };
+
+  /**
+   * Contrôle de la zone géographique envoyée par le formulaire.
+   * Nationale : exactement un pays. Multipays : au moins deux. Internationale : aucune liste.
+   * Chaque pays choisi doit être actif sur GROUPIREX et le produit doit y être livré.
+   */
+  const checkZone = async (tx: Db, b: z.infer<typeof dealSchema>): Promise<Zone> => {
+    const field = (message: string) => new DomainError('VALIDATION_FAILED', { fields: [{ path: 'countries', message }] });
+    const geographicScope = b.geographicScope;
+    if (geographicScope === 'INTERNATIONAL') {
+      if (b.goalScope === 'PER_COUNTRY') throw field('Un objectif par pays demande une campagne multipays');
+      return { geographicScope, goalScope: 'GLOBAL', countries: [] };
+    }
+    const seen = new Set<string>();
+    const countries = b.countries.filter((c) => !seen.has(c.countryCode) && seen.add(c.countryCode));
+    if (geographicScope === 'NATIONAL' && countries.length !== 1) throw field('Choisissez un pays, et un seul');
+    if (geographicScope === 'MULTI_COUNTRY' && countries.length < 2) throw field('Choisissez au moins deux pays, ou passez en « Un seul pays »');
+    const ref = await app.reference.get();
+    const inactive = countries.filter((c) => !ref.countries[c.countryCode]?.isActive).map((c) => c.countryCode);
+    if (inactive.length) throw field(`Pays non actifs sur GROUPIREX : ${inactive.join(', ')}`);
+    const delivered = new Set((await tx.all(`SELECT country_code::text AS c FROM product_countries WHERE product_id = $1`, [b.productId])).map((x) => x.c as string));
+    const missing = countries.filter((c) => !delivered.has(c.countryCode)).map((c) => ref.countries[c.countryCode]?.name ?? c.countryCode);
+    if (missing.length) throw field(`Le produit n'est pas livré dans : ${missing.join(', ')}`);
+    // Nationale : l'objectif de la campagne EST celui du pays.
+    const goalScope = geographicScope === 'NATIONAL' ? 'GLOBAL' : b.goalScope;
+    if (goalScope === 'PER_COUNTRY' && countries.some((c) => !c.targetQuantity)) throw field('Indiquez un objectif pour chaque pays');
+    return {
+      geographicScope,
+      goalScope,
+      countries: countries.map((c) => ({ countryCode: c.countryCode, targetQuantity: goalScope === 'PER_COUNTRY' ? c.targetQuantity ?? null : null })).sort((x, y) => x.countryCode.localeCompare(y.countryCode)),
+    };
+  };
+
+  /** Remplace la liste des pays d'une campagne (ajouts, retraits, objectifs). */
+  const writeZone = async (tx: Db, dealId: string, countries: Zone['countries']) => {
+    const codes = countries.map((c) => c.countryCode);
+    await tx.query(`DELETE FROM group_deal_countries WHERE deal_id = $1 AND NOT (country_code::text = ANY($2::text[]))`, [dealId, codes]);
+    for (const c of countries) {
+      await tx.query(
+        `INSERT INTO group_deal_countries (deal_id, country_code, target_quantity) VALUES ($1, $2, $3)
+         ON CONFLICT (deal_id, country_code) DO UPDATE SET target_quantity = EXCLUDED.target_quantity`,
+        [dealId, c.countryCode, c.targetQuantity],
+      );
+    }
+  };
 
   const writeDeal = async (ctx: Ctx, id: string | null) => {
     const b = ctx.body as z.infer<typeof dealSchema>;
@@ -631,7 +750,9 @@ export function registerAdminCatalogRoutes(app: App): void {
       const base = b.basePrice ?? { amount: product.base_price_amount, currency: product.base_price_currency };
       const minQuantity = b.minQuantity ?? product.moq;
       if (b.maxPerOrder && b.maxPerOrder < minQuantity) throw new DomainError('VALIDATION_FAILED', { fields: [{ path: 'maxPerOrder', message: 'Doit être supérieur ou égal au minimum' }] });
-      if (b.maxQuantity && b.maxQuantity < b.targetQuantity) throw new DomainError('VALIDATION_FAILED', { fields: [{ path: 'maxQuantity', message: "Doit être supérieur ou égal à l'objectif" }] });
+      const zone = await checkZone(tx, b);
+      const targetQuantity = zone.goalScope === 'PER_COUNTRY' ? zone.countries.reduce((sum, c) => sum + (c.targetQuantity ?? 0), 0) : b.targetQuantity;
+      if (b.maxQuantity && b.maxQuantity < targetQuantity) throw new DomainError('VALIDATION_FAILED', { fields: [{ path: 'maxQuantity', message: "Doit être supérieur ou égal à l'objectif" }] });
 
       if (id) {
         const before = await tx.one(`SELECT * FROM group_deals WHERE id = $1 FOR UPDATE`, [id]);
@@ -643,24 +764,37 @@ export function registerAdminCatalogRoutes(app: App): void {
           throw new DomainError('CONFLICT', { reason: 'deal_has_orders_price_locked' });
         }
         if (b.maxQuantity && b.maxQuantity < before.paid_quantity + before.held_quantity) throw new DomainError('CONFLICT', { reason: 'max_below_reserved' });
+        // Le mode de calcul de l'objectif ne change plus une fois des commandes passées.
+        if (hasOrders && before.goal_scope !== zone.goalScope) throw new DomainError('CONFLICT', { reason: 'deal_has_orders_goal_locked' });
+        // Retirer un pays est permis : les commandes déjà passées depuis ce pays sont conservées
+        // (payées comprises) ; seules les nouvelles participations et les nouveaux paiements sont refusés.
+        const beforeCountries = (await tx.all(`SELECT country_code::text AS c, target_quantity FROM group_deal_countries WHERE deal_id = $1 ORDER BY 1`, [id])).map((x) => ({ countryCode: x.c, targetQuantity: x.target_quantity }));
         await tx.query(
           `UPDATE group_deals SET product_id=$2, title=$3, base_price_amount=$4, base_price_currency=$5, compare_at_amount=$6, target_quantity=$7,
-                  min_quantity=$8, max_per_order=$9, max_quantity=$10, starts_at=$11, ends_at=$12, is_featured=$13 WHERE id=$1`,
-          [id, b.productId, b.title ?? null, base.amount, base.currency, b.compareAtAmount ?? null, b.targetQuantity, minQuantity,
-           b.maxPerOrder ?? null, b.maxQuantity ?? null, startsAt, endsAt, b.isFeatured],
+                  min_quantity=$8, max_per_order=$9, max_quantity=$10, starts_at=$11, ends_at=$12, is_featured=$13,
+                  geographic_scope=$14, goal_scope=$15 WHERE id=$1`,
+          [id, b.productId, b.title ?? null, base.amount, base.currency, b.compareAtAmount ?? null, targetQuantity, minQuantity,
+           b.maxPerOrder ?? null, b.maxQuantity ?? null, startsAt, endsAt, b.isFeatured, zone.geographicScope, zone.goalScope],
         );
-        await audit(tx, ctx, { action: 'deal.update', entityType: 'deal', entityId: id, before: { target: before.target_quantity, endsAt: before.ends_at, basePrice: before.base_price_amount }, after: b });
+        await writeZone(tx, id, zone.countries);
+        // L'historique garde la zone avant et après chaque modification.
+        await audit(tx, ctx, {
+          action: 'deal.update', entityType: 'deal', entityId: id,
+          before: { target: before.target_quantity, endsAt: before.ends_at, basePrice: before.base_price_amount, geographicScope: before.geographic_scope, goalScope: before.goal_scope, countries: beforeCountries },
+          after: { ...b, targetQuantity, countries: zone.countries },
+        });
         return id;
       }
       const slug = await uniqueSlug(tx, 'group_deals', slugify(`${b.title || product.name}-${startsAt.toISOString().slice(0, 7)}`));
       const created = await tx.one(
         `INSERT INTO group_deals (product_id, slug, title, base_price_amount, base_price_currency, compare_at_amount, target_quantity,
-                                  min_quantity, max_per_order, max_quantity, starts_at, ends_at, is_featured, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
-        [b.productId, slug, b.title ?? null, base.amount, base.currency, b.compareAtAmount ?? null, b.targetQuantity, minQuantity,
-         b.maxPerOrder ?? null, b.maxQuantity ?? null, startsAt, endsAt, b.isFeatured, ctx.me().id],
+                                  min_quantity, max_per_order, max_quantity, starts_at, ends_at, is_featured, created_by, geographic_scope, goal_scope)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+        [b.productId, slug, b.title ?? null, base.amount, base.currency, b.compareAtAmount ?? null, targetQuantity, minQuantity,
+         b.maxPerOrder ?? null, b.maxQuantity ?? null, startsAt, endsAt, b.isFeatured, ctx.me().id, zone.geographicScope, zone.goalScope],
       );
-      await audit(tx, ctx, { action: 'deal.create', entityType: 'deal', entityId: created!.id, after: b });
+      await writeZone(tx, created!.id, zone.countries);
+      await audit(tx, ctx, { action: 'deal.create', entityType: 'deal', entityId: created!.id, after: { ...b, targetQuantity, countries: zone.countries } });
       return created!.id as string;
     });
   };
@@ -677,16 +811,19 @@ export function registerAdminCatalogRoutes(app: App): void {
       if (d.ends_at <= ctx.now) throw new DomainError('VALIDATION_FAILED', { fields: [{ path: 'endsAt', message: 'La date de fin est déjà passée' }] });
       const sellable = await tx.one(
         `SELECT count(*)::int AS n FROM product_countries pc JOIN shipping_rates sr
-           ON sr.product_id = pc.product_id AND sr.country_code = pc.country_code AND sr.is_current WHERE pc.product_id = $1`,
-        [d.product_id],
+           ON sr.product_id = pc.product_id AND sr.country_code = pc.country_code AND sr.is_current
+           JOIN group_deals d ON d.id = $2
+          WHERE pc.product_id = $1 AND ${dealOpenIn('d', 'pc.country_code')}`,
+        [d.product_id, d.id],
       );
       if (sellable!.n === 0) throw new DomainError('SHIPPING_RATE_MISSING', { reason: 'no_country_with_rate' });
       await tx.query(`UPDATE group_deals SET stored_status = 'PUBLISHED' WHERE id = $1`, [d.id]);
       await audit(tx, ctx, { action: 'deal.publish', entityType: 'deal', entityId: d.id });
       await broadcast(
         tx, 'DEAL_NEW', { title: d.title ?? d.product_name }, `/deals/${d.slug}`,
-        `SELECT u.id AS user_id FROM users u WHERE u.country_code IN (SELECT country_code FROM product_countries WHERE product_id = $4)`,
-        [d.product_id],
+        `SELECT u.id AS user_id FROM users u JOIN group_deals d ON d.id = $5
+          WHERE u.country_code IN (SELECT country_code FROM product_countries WHERE product_id = $4) AND ${dealOpenIn('d', 'u.country_code')}`,
+        [d.product_id, d.id],
       );
     });
     return { status: 'PUBLISHED' };

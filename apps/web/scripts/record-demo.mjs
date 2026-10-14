@@ -229,7 +229,8 @@ await call('POST', '/auth/verify-email', { token, body: { token: reg.debug.verif
 const me = await call('GET', '/me', { token });
 const session = { accessToken: 'demo', expiresIn: reg.expiresIn, user: me.user };
 const offices = (await call('GET', '/local-offices', { token })).offices;
-const deal = (await call('GET', '/group-deals/sandales-en-cuir-tresse-2026-09', { token })).deal;
+// L'adresse de la campagne porte le mois du jeu de démonstration : on la retrouve par la fiche produit.
+const deal = (await call('GET', '/products/sandales-en-cuir-tresse', { token })).deal;
 const variantId = deal.product.variants?.[0]?.id ?? null;
 const participate = (quantity, paymentMethod) =>
   call('POST', `/group-deals/${deal.id}/participate`, {
