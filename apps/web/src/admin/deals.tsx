@@ -33,6 +33,7 @@ interface AdminDeal {
   startsAt: string;
   endsAt: string;
   isFeatured: boolean;
+  isBanner: boolean;
   cancelReason: string | null;
   geographicScope: GeoScope;
   goalScope: GoalScope;
@@ -76,6 +77,7 @@ function DealForm({ deal, onDone, onClose }: { deal: AdminDeal | null; onDone: (
     startsAt: toLocalInput(deal?.startsAt ?? new Date().toISOString()),
     endsAt: toLocalInput(deal?.endsAt ?? new Date(Date.now() + 14 * 86_400_000).toISOString()),
     isFeatured: deal?.isFeatured ?? false,
+    isBanner: deal?.isBanner ?? false,
   });
   const [zone, setZone] = useState<ZoneValue>({
     scope: deal?.geographicScope ?? 'INTERNATIONAL',
@@ -117,7 +119,7 @@ function DealForm({ deal, onDone, onClose }: { deal: AdminDeal | null; onDone: (
       compareAtAmount: f.compareAt.trim() ? toMinor(f.compareAt, dec) : null,
       targetQuantity: target, minQuantity: Number(f.min) || undefined,
       maxPerOrder: f.maxPerOrder ? Number(f.maxPerOrder) : null, maxQuantity: f.maxQuantity ? Number(f.maxQuantity) : null,
-      startsAt: fromLocalInput(f.startsAt), endsAt: fromLocalInput(f.endsAt), isFeatured: f.isFeatured,
+      startsAt: fromLocalInput(f.startsAt), endsAt: fromLocalInput(f.endsAt), isFeatured: f.isFeatured, isBanner: f.isBanner,
       ...zonePayload(zone),
     };
     await (deal ? put(`/admin/deals/${deal.id}`, body) : post('/admin/deals', body));
@@ -148,6 +150,7 @@ function DealForm({ deal, onDone, onClose }: { deal: AdminDeal | null; onDone: (
         </div>
         <ZoneField productId={f.productId} value={zone} onChange={setZone} ordered={ordered} goalLocked={locked} />
         <label className="check"><input type="checkbox" checked={f.isFeatured} onChange={(e) => setF({ ...f, isFeatured: e.target.checked })} /><span>{t('Mettre à la une sur l’accueil')}</span></label>
+        <label className="check"><input type="checkbox" checked={f.isBanner} onChange={(e) => setF({ ...f, isBanner: e.target.checked, isFeatured: e.target.checked || f.isFeatured })} /><span>{t('Afficher dans la bannière de l’accueil')}<br /><span className="tiny muted">{t('La grande carte en haut de l’accueil montre cette campagne. Une seule campagne à la fois : celle qui y était est remplacée.')}</span></span></label>
         {problem && <div className="notice notice--error" role="alert"><Icon name="alert" /><span>{problem}</span></div>}
         <ErrorNote error={save.error} />
         <button className="btn btn--primary" disabled={save.busy || !!zoneProblem(zone, t)}>{deal ? t('Enregistrer la campagne') : t('Créer le brouillon')}</button>
@@ -250,7 +253,7 @@ export function DealsAdminPage() {
         rowKey={(d) => d.id}
         empty={t('Aucune campagne dans cette vue.')}
         columns={[
-          { head: t('Campagne'), cell: (d) => <><Link to={`/admin/deals/${d.id}`}>{d.title}</Link><br /><span className="tiny muted">{formatDate(d.startsAt, lang)} – {formatDate(d.endsAt, lang, true)}</span></> },
+          { head: t('Campagne'), cell: (d) => <><Link to={`/admin/deals/${d.id}`}>{d.title}</Link>{d.isBanner && <> <Pill tone="pink">{t('Bannière')}</Pill></>}<br /><span className="tiny muted">{formatDate(d.startsAt, lang)} – {formatDate(d.endsAt, lang, true)}</span></> },
           { head: t('Type'), cell: (d) => <Pill tone={SCOPE_TONE[d.geographicScope ?? 'INTERNATIONAL']}>{t(SCOPE_LABEL[d.geographicScope ?? 'INTERNATIONAL'])}</Pill> },
           { head: t('Pays autorisés'), cell: (d) => <span className="small"><ZoneCountries scope={d.geographicScope ?? 'INTERNATIONAL'} countries={d.countries ?? []} /></span> },
           { head: t('Participants'), right: true, cell: (d) => formatNumber(d.participants, lang) },

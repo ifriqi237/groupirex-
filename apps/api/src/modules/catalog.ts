@@ -68,7 +68,8 @@ export async function listDeals(app: App, viewer: Viewer, q: z.infer<typeof list
     ending: 'd.ends_at ASC',
     popular: '(d.paid_quantity::float / d.target_quantity) DESC, d.participants_count DESC',
     recent: 'd.created_at DESC',
-    featured: 'd.is_featured DESC, d.ends_at ASC',
+    // La campagne choisie pour la bannière passe en premier : c'est elle que montre la grande carte de l'accueil.
+    featured: 'd.is_banner DESC, d.is_featured DESC, d.ends_at ASC',
   }[q.sort];
 
   const sqlWhere = where.join(' AND ');

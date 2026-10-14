@@ -1239,5 +1239,8 @@
   "{n} pays actifs sur GROUPDEALS, dont {d} où ce produit est livré : la campagne y sera visible.": "{n} active countries on GROUPDEALS, {d} of which receive this product: the campaign will be visible there.",
   "{n} pays actifs sur GROUPDEALS. La campagne sera visible dans ceux où le produit est livré.": "{n} active countries on GROUPDEALS. The campaign will be visible wherever the product is delivered.",
   "Masquer les pays où le produit n’est pas livré": "Hide countries where the product is not delivered",
-  "Voir aussi les {n} pays où le produit n’est pas livré": "Also show the {n} countries where the product is not delivered"
+  "Voir aussi les {n} pays où le produit n’est pas livré": "Also show the {n} countries where the product is not delivered",
+  "Afficher dans la bannière de l’accueil": "Show in the home page banner",
+  "Bannière": "Banner",
+  "La grande carte en haut de l’accueil montre cette campagne. Une seule campagne à la fois : celle qui y était est remplacée.": "The large card at the top of the home page shows this campaign. One campaign at a time: the previous one is replaced."
 }

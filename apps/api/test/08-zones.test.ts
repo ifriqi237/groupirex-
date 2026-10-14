@@ -195,3 +195,30 @@ describe('Zone géographique des campagnes', () => {
     assert.deepEqual({ ...legacy }, { geographic_scope: 'INTERNATIONAL', goal_scope: 'GLOBAL' });
   });
 });
+
+describe('Bannière de l’accueil', () => {
+  let env: TestEnv;
+  before(async () => { env = await startEnv(); });
+  after(async () => env.close());
+
+  it('la campagne choisie pour la bannière passe en premier, une seule à la fois', async () => {
+    const admin = await createUser(env, { roles: ['SUPER_ADMIN'] });
+    await setRates(env, admin.token);
+    const soon = await createCatalog(env, admin.token, { name: 'Fin proche', endsInMs: 2 * 86_400_000 });
+    const late = await createCatalog(env, admin.token, { name: 'Fin lointaine', endsInMs: 40 * 86_400_000 });
+    const other = await createCatalog(env, admin.token, { name: 'Autre', endsInMs: 30 * 86_400_000 });
+    const first = async () => (await env.api('GET', '/home', { headers: { 'X-Country': 'CM' } })).body.featured[0].id;
+    assert.equal(await first(), soon.dealId);
+    const setBanner = async (id: string) => {
+      const d = (await env.api('GET', `/admin/deals/${id}`, { token: admin.token })).body.deal;
+      const res = await env.api('PUT', `/admin/deals/${id}`, { token: admin.token, body: { productId: d.productId, targetQuantity: d.targetQuantity, startsAt: d.startsAt, endsAt: d.endsAt, isBanner: true } });
+      assert.equal(res.status, 200);
+    };
+    await setBanner(late.dealId);
+    assert.equal(await first(), late.dealId);
+    await setBanner(other.dealId);
+    assert.equal(await first(), other.dealId);
+    const n = await env.app.db.one(`SELECT count(*)::int AS n FROM group_deals WHERE is_banner`);
+    assert.equal(n!.n, 1);
+  });
+});

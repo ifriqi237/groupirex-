@@ -111,6 +111,8 @@ const dealSchema = z.object({
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime(),
   isFeatured: z.boolean().default(false),
+  /** Grande carte de la bannière d'accueil : une seule campagne à la fois. */
+  isBanner: z.boolean().default(false),
   /**
    * Zone géographique : qui voit la campagne et peut y participer.
    * Absente (anciens clients de l'API) : campagne internationale, comme avant.
@@ -595,6 +597,7 @@ export function registerAdminCatalogRoutes(app: App): void {
       startsAt: d.starts_at,
       endsAt: d.ends_at,
       isFeatured: d.is_featured,
+      isBanner: d.is_banner,
       geographicScope: d.geographic_scope,
       goalScope: d.goal_scope,
       /** Pays autorisés (vide pour une campagne internationale), avec l'objectif du pays si l'objectif est par pays. */
@@ -738,6 +741,12 @@ export function registerAdminCatalogRoutes(app: App): void {
     }
   };
 
+  /** Choisir une campagne pour la bannière la retire de celle qui y était. */
+  const setBanner = async (tx: Db, dealId: string, on: boolean) => {
+    if (on) await tx.query(`UPDATE group_deals SET is_banner = false WHERE is_banner AND id <> $1`, [dealId]);
+    await tx.query(`UPDATE group_deals SET is_banner = $2 WHERE id = $1`, [dealId, on]);
+  };
+
   const writeDeal = async (ctx: Ctx, id: string | null) => {
     const b = ctx.body as z.infer<typeof dealSchema>;
     const startsAt = new Date(b.startsAt);
@@ -777,6 +786,7 @@ export function registerAdminCatalogRoutes(app: App): void {
            b.maxPerOrder ?? null, b.maxQuantity ?? null, startsAt, endsAt, b.isFeatured, zone.geographicScope, zone.goalScope],
         );
         await writeZone(tx, id, zone.countries);
+        await setBanner(tx, id, b.isBanner);
         // L'historique garde la zone avant et après chaque modification.
         await audit(tx, ctx, {
           action: 'deal.update', entityType: 'deal', entityId: id,
@@ -794,6 +804,7 @@ export function registerAdminCatalogRoutes(app: App): void {
          b.maxPerOrder ?? null, b.maxQuantity ?? null, startsAt, endsAt, b.isFeatured, ctx.me().id, zone.geographicScope, zone.goalScope],
       );
       await writeZone(tx, created!.id, zone.countries);
+      await setBanner(tx, created!.id, b.isBanner);
       await audit(tx, ctx, { action: 'deal.create', entityType: 'deal', entityId: created!.id, after: { ...b, targetQuantity, countries: zone.countries } });
       return created!.id as string;
     });
