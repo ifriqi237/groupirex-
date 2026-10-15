@@ -122,9 +122,9 @@ try {
   await page.click('a.btn--primary');
   await page.waitForSelector('.deal');
   // Accueil : l'univers de l'inscription (carte, bateau, camion, bulles), l'offre vedette, la route en 4 étapes, les catégories en bulles.
-  await page.waitForSelector('.hero .live');
-  const artOk = await page.evaluate(() => [...document.querySelectorAll('.hero .art img')].every((i) => i.complete && i.naturalWidth > 0));
-  check(artOk && (await page.locator('.hero .art img').count()) === 4 && (await page.locator('.hero .bubble').count()) > 0, 'accueil : décor de l’inscription dans la bannière (carte, avion, bateau, camion, bulles)');
+  await page.waitForSelector('.hx .live');
+  const heroOk = await page.evaluate(() => [...document.querySelectorAll('.hx__slide img')].filter((i) => i.loading !== 'lazy').every((i) => i.complete && i.naturalWidth > 0));
+  check(heroOk && (await page.locator('.hx__slide').count()) === 4 && (await page.locator('.hx__dot').count()) === 4, 'accueil : bannière en carrousel (4 images de fond, navigation)');
   check((await page.locator('.how__steps li').count()) === 4 && (await page.locator('.cats .cat img').count()) > 0 && (await page.locator('.band--rose .deal').count()) > 0, 'accueil : route en 4 étapes, catégories en bulles, offres sur la bande rose');
 
   console.log('\n3. Commande payée en ligne');

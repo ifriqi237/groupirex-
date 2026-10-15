@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth';
 import { N_, formatNumber, useI18n, useT } from '../lib/i18n';
 import { asset } from '../lib/env';
 import { Link } from '../lib/router';
-import { Art } from '../components/art';
+import { HeroCarousel } from '../components/hero';
 
 export interface Category {
   id: string;
@@ -79,34 +79,30 @@ export function HomePage() {
 
   return (
     <>
-      <section className="hero rosebg">
-        <Art />
-        <div className="wrap hero__in">
-          <div>
-            {data && data.featured.length > 0 && (
-              <p className="hero__badge">
-                <Icon name="ship" size={16} />
-                {data.featured.length > 1 ? t('{n} commandes groupées ouvertes', { n: data.featured.length }) : t('1 commande groupée ouverte')}
-              </p>
-            )}
-            <h1 className="h-display">{t('Achetons ensemble, Obtenons des prix bas')}</h1>
-            <p className="lead hero__lead" style={{ marginTop: 20 }}>
-              {t('Rejoignez une commande groupée, payez un seul prix livraison comprise, et suivez votre colis jusqu’au retrait.')}
-            </p>
-            <div className="row row--wrap hero__ctas">
-              <Link to="/deals" className="btn btn--primary btn--l">
-                {t('Voir les offres en cours')}
-              </Link>
-              {!user ? (
-                <Link to="/register" className="hero__more">{t('Créer un compte')}</Link>
-              ) : (
-                <a href="#how" className="hero__more" onClick={(e) => { e.preventDefault(); document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' }); }}>{t('Comment ça marche')}</a>
-              )}
-            </div>
-          </div>
-          {data?.featured[0] && <LiveDeal deal={data.featured[0]} />}
-        </div>
-      </section>
+      <HeroCarousel
+        badge={data && data.featured.length > 0 ? (
+          <p className="hero__badge">
+            <Icon name="ship" size={16} />
+            {data.featured.length > 1 ? t('{n} commandes groupées ouvertes', { n: data.featured.length }) : t('1 commande groupée ouverte')}
+          </p>
+        ) : undefined}
+        title={t('Achetons ensemble, Obtenons des prix bas')}
+        lead={t('Rejoignez une commande groupée, payez un seul prix livraison comprise, et suivez votre colis jusqu’au retrait.')}
+        actions={<>
+          <Link to="/deals" className="btn btn--primary btn--l">{t('Voir les offres en cours')}</Link>
+          {!user ? (
+            <Link to="/register" className="hero__more">{t('Créer un compte')}</Link>
+          ) : (
+            <a href="#how" className="hero__more" onClick={(e) => { e.preventDefault(); document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' }); }}>{t('Comment ça marche')}</a>
+          )}
+        </>}
+        stats={data ? [
+          { value: data.stats.countries, label: t('pays desservis') },
+          { value: data.stats.unitsOrdered, label: t('articles déjà commandés') },
+          { value: data.stats.members, label: t('membres') },
+        ].filter((s) => s.value > 0) : undefined}
+        aside={data?.featured[0] ? <LiveDeal deal={data.featured[0]} /> : undefined}
+      />
 
       <section className="how" aria-labelledby="how">
         <div className="wrap">
