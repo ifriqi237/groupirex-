@@ -65,7 +65,7 @@ export function HeroCarousel({ badge, title, lead, actions, stats, aside }: {
   badge?: ReactNode;
   title: string;
   lead: string;
-  actions: ReactNode;
+  actions?: ReactNode;
   stats?: { value: number; label: string }[];
   aside?: ReactNode;
 }) {
@@ -134,7 +134,7 @@ export function HeroCarousel({ badge, title, lead, actions, stats, aside }: {
           {badge}
           <h1 className="h-display hx__title">{title}</h1>
           <p className="hx__lead">{lead}</p>
-          <div className="row row--wrap hx__ctas">{actions}</div>
+          {actions && <div className="row row--wrap hx__ctas">{actions}</div>}
           {stats && stats.length > 0 && (
             <dl className="hx__stats">
               {stats.map((s) => (

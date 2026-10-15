@@ -74,7 +74,7 @@ const STEPS: [icon: string, title: string, text: string][] = [
 export function HomePage() {
   const t = useT();
   const { lang } = useI18n();
-  const { country, user } = useAuth();
+  const { country } = useAuth();
   const { data, error, loading, reload } = useApi<HomeData>(`/home?c=${country}`);
 
   return (
@@ -88,19 +88,6 @@ export function HomePage() {
         ) : undefined}
         title={t('Achetons ensemble, Obtenons des prix bas')}
         lead={t('Rejoignez une commande groupée, payez un seul prix livraison comprise, et suivez votre colis jusqu’au retrait.')}
-        actions={<>
-          <Link to="/deals" className="btn btn--primary btn--l">{t('Voir les offres en cours')}</Link>
-          {!user ? (
-            <Link to="/register" className="hero__more">{t('Créer un compte')}</Link>
-          ) : (
-            <a href="#how" className="hero__more" onClick={(e) => { e.preventDefault(); document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' }); }}>{t('Comment ça marche')}</a>
-          )}
-        </>}
-        stats={data ? [
-          { value: data.stats.countries, label: t('pays desservis') },
-          { value: data.stats.unitsOrdered, label: t('articles déjà commandés') },
-          { value: data.stats.members, label: t('membres') },
-        ].filter((s) => s.value > 0) : undefined}
         aside={data?.featured[0] ? <LiveDeal deal={data.featured[0]} /> : undefined}
       />
 
