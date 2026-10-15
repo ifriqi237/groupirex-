@@ -16,16 +16,13 @@ interface Slide {
   label: string;
   caption: string;
   to: string;
-  /** Image de fond (ordinateur, puis téléphone) ; absente pour la diapositive « importation », dessinée. */
-  image?: [wide: string, tall: string];
+  /** Image de fond (ordinateur, puis téléphone). */
+  image: [wide: string, tall: string];
 }
 
 const SLIDES: Slide[] = [
   { key: 'port', label: N_('Importation'), caption: N_('De l’usine jusqu’à votre ville, en un seul conteneur'), to: '/deals', image: ['/hero/port-nuit.webp', '/hero/port-nuit-m.webp'] },
   { key: 'terminal', label: N_('Expédition'), caption: N_('Vos commandes partent ensemble : les frais de transport sont partagés'), to: '/deals', image: ['/hero/port-terminal.webp', '/hero/port-terminal-m.webp'] },
-  { key: 'mode', label: N_('Mode'), caption: N_('Wax et prêt-à-porter, commandés directement aux ateliers'), to: '/deals?category=mode-homme', image: ['/hero/mode.webp', '/hero/mode-m.webp'] },
-  { key: 'solaire', label: N_('Énergie solaire'), caption: N_('Panneaux et kits solaires au prix usine'), to: '/deals?category=energie-solaire', image: ['/hero/solaire.webp', '/hero/solaire-m.webp'] },
-  { key: 'cuir', label: N_('Cuir'), caption: N_('Sandales et sacs en cuir, du fabricant à vos pieds'), to: '/deals?category=mode-femme', image: ['/hero/chaussures.webp', '/hero/chaussures-m.webp'] },
 ];
 
 const DURATION = 6500;
@@ -113,18 +110,10 @@ export function HeroCarousel({ badge, title, lead, actions, stats, aside }: {
       <div className="hx__slides" aria-hidden="true">
         {SLIDES.map((s, i) => (
           <div key={s.key} className={`hx__slide hx__slide--${s.key} ${i === index ? 'is-on' : ''}`}>
-            {s.image ? (
-              <picture>
-                <source media="(max-width: 700px)" srcSet={asset(s.image[1])} />
-                <img src={asset(s.image[0])} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
-              </picture>
-            ) : (
-              <div className="hx__drawn">
-                <img className="hx__map" src={asset('/welcome/map.svg')} alt="" />
-                <img className="hx__ship" src={asset('/welcome/ship.svg')} alt="" />
-                <img className="hx__plane" src={asset('/welcome/plane.svg')} alt="" />
-              </div>
-            )}
+            <picture>
+              <source media="(max-width: 700px)" srcSet={asset(s.image[1])} />
+              <img src={asset(s.image[0])} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+            </picture>
           </div>
         ))}
       </div>

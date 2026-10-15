@@ -909,18 +909,7 @@ body:has(.checkout) .backbar { --bb: var(--rose-2); }
 .hx__slide > picture img { object-fit: cover; transform: scale(1.04); transform-origin: 70% 50%; }
 /* Lent zoom (effet « Ken Burns »), dans un sens différent selon l'image */
 .hx.is-running .hx__slide.is-on > picture img { animation: hx-zoom 9s ease-out both; }
-.hx__slide--solaire > picture img { transform-origin: 30% 40%; }
-.hx__slide--cuir > picture img { transform-origin: 60% 80%; }
 @keyframes hx-zoom { from { transform: scale(1.04); } to { transform: scale(1.16); } }
-/* Diapositive « importation » : dessin de la marque sur fond bleu nuit */
-.hx__drawn { position: absolute; inset: 0; background: radial-gradient(90% 80% at 75% 30%, #1D2D66 0%, var(--navy) 45%, var(--ink) 100%); }
-.hx__map { position: absolute; top: 4%; left: 50%; width: max(1300px, 112%) !important; height: auto !important; translate: -50% 0; opacity: 0.22; filter: brightness(2.4) saturate(0.6); }
-.hx__ship { position: absolute; bottom: -2%; inset-inline-end: 4%; width: clamp(300px, 36vw, 560px) !important; height: auto !important; opacity: 0.5; filter: brightness(1.6); }
-.hx__plane { position: absolute; top: 12%; inset-inline-end: 30%; width: clamp(90px, 10vw, 160px) !important; height: auto !important; opacity: 0.55; transform: scaleX(-1) rotate(-12deg); }
-.hx.is-running .hx__slide--import.is-on .hx__ship { animation: hx-sail 9s ease-out both; }
-.hx.is-running .hx__slide--import.is-on .hx__plane { animation: hx-fly 9s ease-out both; }
-@keyframes hx-sail { from { translate: 60px 0; } to { translate: -40px 0; } }
-@keyframes hx-fly { from { translate: 80px 30px; } to { translate: -60px -20px; } }
 /* Voile : texte toujours lisible, quelle que soit l'image */
 .hx__shade { position: absolute; inset: 0; z-index: -1; background:
   linear-gradient(90deg, rgba(10, 18, 48, 0.94) 0%, rgba(10, 18, 48, 0.82) 38%, rgba(10, 18, 48, 0.42) 72%, rgba(10, 18, 48, 0.3) 100%),

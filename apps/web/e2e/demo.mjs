@@ -124,7 +124,7 @@ try {
   // Accueil : l'univers de l'inscription (carte, bateau, camion, bulles), l'offre vedette, la route en 4 étapes, les catégories en bulles.
   await page.waitForSelector('.hx .live');
   const heroOk = await page.evaluate(() => [...document.querySelectorAll('.hx__slide img')].filter((i) => i.loading !== 'lazy').every((i) => i.complete && i.naturalWidth > 0));
-  check(heroOk && (await page.locator('.hx__slide').count()) === 5 && (await page.locator('.hx__dot').count()) === 5, 'accueil : bannière en carrousel (5 images de fond, navigation)');
+  check(heroOk && (await page.locator('.hx__slide').count()) === 2 && (await page.locator('.hx__dot').count()) === 2, 'accueil : bannière en carrousel (2 images de fond, navigation)');
   check((await page.locator('.how__steps li').count()) === 4 && (await page.locator('.cats .cat img').count()) > 0 && (await page.locator('.band--rose .deal').count()) > 0, 'accueil : route en 4 étapes, catégories en bulles, offres sur la bande rose');
 
   console.log('\n3. Commande payée en ligne');
