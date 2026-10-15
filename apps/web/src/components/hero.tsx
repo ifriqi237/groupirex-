@@ -21,7 +21,8 @@ interface Slide {
 }
 
 const SLIDES: Slide[] = [
-  { key: 'import', label: N_('Importation'), caption: N_('De l’usine jusqu’à votre ville, en un seul conteneur'), to: '/deals' },
+  { key: 'port', label: N_('Importation'), caption: N_('De l’usine jusqu’à votre ville, en un seul conteneur'), to: '/deals', image: ['/hero/port-nuit.webp', '/hero/port-nuit-m.webp'] },
+  { key: 'terminal', label: N_('Expédition'), caption: N_('Vos commandes partent ensemble : les frais de transport sont partagés'), to: '/deals', image: ['/hero/port-terminal.webp', '/hero/port-terminal-m.webp'] },
   { key: 'mode', label: N_('Mode'), caption: N_('Wax et prêt-à-porter, commandés directement aux ateliers'), to: '/deals?category=mode-homme', image: ['/hero/mode.webp', '/hero/mode-m.webp'] },
   { key: 'solaire', label: N_('Énergie solaire'), caption: N_('Panneaux et kits solaires au prix usine'), to: '/deals?category=energie-solaire', image: ['/hero/solaire.webp', '/hero/solaire-m.webp'] },
   { key: 'cuir', label: N_('Cuir'), caption: N_('Sandales et sacs en cuir, du fabricant à vos pieds'), to: '/deals?category=mode-femme', image: ['/hero/chaussures.webp', '/hero/chaussures-m.webp'] },

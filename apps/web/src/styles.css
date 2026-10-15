@@ -984,3 +984,22 @@ body:has(.checkout) .backbar { --bb: var(--rose-2); }
   .hx *, .hx__text > *, .hx__aside { animation: none !important; }
   .hx__slide { transition: none; }
 }
+/* Photos de port : travelling lent de gauche à droite et lumières qui scintillent */
+.hx__slide--port > picture img { object-position: 70% 60%; transform-origin: 80% 55%; }
+.hx__slide--terminal > picture img { object-position: 55% 55%; transform-origin: 40% 60%; }
+.hx.is-running .hx__slide--port.is-on > picture img { animation: hx-pan-left 9s ease-out both, hx-lights 2.6s ease-in-out infinite alternate; }
+.hx.is-running .hx__slide--terminal.is-on > picture img { animation: hx-pan-right 9s ease-out both, hx-lights 3.1s ease-in-out infinite alternate; }
+@keyframes hx-pan-left { from { transform: scale(1.18) translateX(3%); } to { transform: scale(1.06) translateX(-2%); } }
+@keyframes hx-pan-right { from { transform: scale(1.06) translateX(-3%); } to { transform: scale(1.18) translateX(2%); } }
+@keyframes hx-lights { from { filter: brightness(0.95) saturate(1.05); } to { filter: brightness(1.12) saturate(1.2); } }
+/* Reflet lumineux qui balaie l'image */
+.hx__slide--port::after, .hx__slide--terminal::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 214, 160, 0.16) 50%, transparent 65%); background-size: 250% 100%; background-position: 120% 0; pointer-events: none; }
+.hx.is-running .hx__slide--port.is-on::after, .hx.is-running .hx__slide--terminal.is-on::after { animation: hx-sweep 4.5s 1s ease-in-out both; }
+@keyframes hx-sweep { from { background-position: 120% 0; } to { background-position: -20% 0; } }
+@media (max-width: 700px) { .hx__slide--port > picture img { object-position: 78% 60%; } .hx__slide--terminal > picture img { object-position: 50% 55%; } }
+/* La navigation garde sa place quelle que soit la longueur de la légende */
+@media (min-width: 701px) {
+  .hx__bar { flex-wrap: nowrap; }
+  .hx__caption { flex: 1 1 0; min-width: 0; }
+  .hx__nav { flex: none; }
+}
