@@ -1250,5 +1250,7 @@
   "Importation": "Import",
   "Mettre en pause le défilement": "Pause the slideshow",
   "Reprendre le défilement": "Resume the slideshow",
-  "Vos commandes partent ensemble : les frais de transport sont partagés": "Your orders ship together: transport costs are shared"
+  "Vos commandes partent ensemble : les frais de transport sont partagés": "Your orders ship together: transport costs are shared",
+  "Aucune commande groupée à venir pour le moment": "No upcoming group orders for now",
+  "Les prochaines campagnes s’afficheront ici avant leur ouverture.": "Upcoming campaigns will appear here before they open."
 }

@@ -158,14 +158,19 @@ export function HomePage() {
               </section>
             )}
 
-            {data.upcoming.length > 0 && (
-              <section className="section" aria-labelledby="upcoming">
-                <div className="section__head">
-                  <h2 className="h2" id="upcoming">{t('Bientôt ouvertes')}</h2>
-                </div>
+            {/* Toujours affiché : sans campagne à venir, un message prend la place des cartes. */}
+            <section className="section" aria-labelledby="upcoming">
+              <div className="section__head">
+                <h2 className="h2" id="upcoming">{t('Bientôt ouvertes')}</h2>
+              </div>
+              {data.upcoming.length > 0 ? (
                 <DealGrid deals={data.upcoming} />
-              </section>
-            )}
+              ) : (
+                <Empty title={t('Aucune commande groupée à venir pour le moment')}>
+                  {t('Les prochaines campagnes s’afficheront ici avant leur ouverture.')}
+                </Empty>
+              )}
+            </section>
           </div>
         </div>
       )}
