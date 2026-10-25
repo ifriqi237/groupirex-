@@ -525,17 +525,17 @@ describe('Matching, droits et administration (§30, §31, §35, §38)', () => {
   });
 
   it('catégories : création, modification, ordre, désactivation ; suppression réservée au super-admin', async () => {
-    // Les douze catégories livrées, dont les six ajoutées ensuite.
+    // Les quinze catégories livrées : les six d'origine, puis six, puis trois ajoutées ensuite.
     const delivered = (await env.api('GET', '/categories')).body.categories.map((c: any) => c.slug);
-    assert.deepEqual(delivered, ['mode-homme', 'mode-femme', 'mode-enfant', 'papier', 'energie-solaire', 'gadgets', 'meubles', 'auto-motos', 'electronique', 'extensions', 'menage', 'electromenager']);
+    assert.deepEqual(delivered, ['mode-homme', 'mode-femme', 'mode-enfant', 'papier', 'energie-solaire', 'gadgets', 'meubles', 'auto-motos', 'electronique', 'extensions', 'menage', 'electromenager', 'materiaux-construction', 'agro-alimentaire', 'abonnements']);
     const created = await env.api('POST', '/admin/categories', { token: moderator.token, body: { name: 'Jouets éducatifs', description: 'Jeux et jouets', sortOrder: 20 } });
     assert.equal(created.status, 201);
     const list = (await env.api('GET', '/admin/categories', { token: moderator.token })).body.categories;
-    assert.equal(list.length, 13);
+    assert.equal(list.length, 16);
     const mine = list.find((c: any) => c.id === created.body.id);
     assert.equal(mine.slug, 'jouets-educatifs');
     await env.api('PUT', `/admin/categories/${mine.id}`, { token: moderator.token, body: { name: 'Jouets éducatifs', isActive: false, sortOrder: 20 } });
-    assert.equal((await env.api('GET', '/categories')).body.categories.length, 12, 'une catégorie désactivée disparaît du site');
+    assert.equal((await env.api('GET', '/categories')).body.categories.length, 15, 'une catégorie désactivée disparaît du site');
     const ids = list.map((c: any) => c.id).reverse();
     await env.api('POST', '/admin/categories/reorder', { token: moderator.token, body: { ids } });
     assert.equal((await env.api('GET', '/admin/categories', { token: moderator.token })).body.categories[0].id, ids[0]);
